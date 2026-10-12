@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Tichu Online</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐉</text></svg>">
+</head>
+<body>
+  <!-- Startbildschirm -->
+  <section id="start" class="screen">
+    <div class="start-box">
+      <h1>🐉 Tichu</h1>
+      <p class="sub">Das Kartenspiel für vier – online mit Freunden</p>
+      <label>Dein Name
+        <input id="name-input" maxlength="20" autocomplete="nickname" placeholder="z. B. Vasco">
+      </label>
+      <button id="create-btn" class="primary">Neuen Tisch erstellen</button>
+      <div class="or">oder</div>
+      <div class="join-row">
+        <input id="room-input" maxlength="8" placeholder="Tisch-Code" autocapitalize="characters">
+        <button id="join-btn">Beitreten</button>
+      </div>
+      <p class="hint">Erstelle einen Tisch und schicke den Link an deine Mitspieler. Freie Plätze kannst du mit Bots auffüllen.</p>
+    </div>
+  </section>
+
+  <!-- Spieltisch -->
+  <section id="game" class="screen hidden">
+    <header id="topbar">
+      <div class="room-info">
+        Tisch <b id="room-code"></b>
+        <button id="copy-link" class="small" title="Einladungslink kopieren">🔗 Link kopieren</button>
+      </div>
+      <div id="scoreboard"></div>
+      <div class="top-actions">
+        <button id="history-btn" class="small" title="Punkteverlauf">📊</button>
+        <button id="side-toggle" class="small" title="Chat & Protokoll">💬</button>
+      </div>
+    </header>
+
+    <main id="table">
+      <div class="seat pos-top" id="seat-top"></div>
+      <div class="seat pos-left" id="seat-left"></div>
+      <div class="seat pos-right" id="seat-right"></div>
+      <div id="center">
+        <div id="status"></div>
+        <div id="trick"></div>
+      </div>
+    </main>
+
+    <footer id="me">
+      <div class="seat pos-bottom" id="seat-bottom"></div>
+      <div id="actions"></div>
+      <div id="hand"></div>
+    </footer>
+
+    <aside id="side">
+      <div id="log"></div>
+      <form id="chat-form">
+        <input id="chat-input" maxlength="300" placeholder="Nachricht…" autocomplete="off">
+        <button>Senden</button>
+      </form>
+    </aside>
+  </section>
+
+  <div id="overlay" class="hidden"><div id="modal"></div></div>
+  <div id="toast"></div>
+  <div id="conn" class="hidden">Verbindung getrennt – verbinde neu…</div>
+
+  <script src="tichu-core.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
