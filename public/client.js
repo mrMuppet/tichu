@@ -259,20 +259,17 @@
       const plays = g.trick.plays.slice(-3);
       html = plays.map((p, i) => {
         const old = i < plays.length - 1;
-        const who = old ? esc(nameOf(p.seat))
-          : `<span class="from">${ARROWS[posOf(p.seat)]} ${p.seat === me() ? 'Du' : esc(nameOf(p.seat))}</span> ${esc(p.desc)}`;
-        return `<div class="play ${old ? 'old' : 'current'}"><div class="who">${who}</div>` +
-          `<div class="cards">${p.cards.map(c => cardHTML(c)).join('')}</div></div>`;
+        return `<div class="play p-${posOf(p.seat)} ${old ? 'old' : 'current'}" style="z-index:${i + 1}">` +
+          `<div class="cards">${p.cards.map(c => cardHTML(c)).join('')}</div>` +
+          (old ? '' : `<div class="desc">${esc(p.desc)}</div>`) + `</div>`;
       }).join('');
     } else if (g.lastTrick && g.phase === 'play') {
       const p = g.lastTrick.plays[g.lastTrick.plays.length - 1];
-      html = `<div class="play last-trick"><div class="who">letzter Stich: ${esc(nameOf(p.seat))}</div>` +
-        `<div class="cards">${p.cards.map(c => cardHTML(c)).join('')}</div></div>`;
+      html = `<div class="play p-${posOf(p.seat)} last-trick">` +
+        `<div class="cards">${p.cards.map(c => cardHTML(c)).join('')}</div><div class="desc">letzter Stich</div></div>`;
     }
     trick.innerHTML = html;
   }
-
-  const ARROWS = { top: '⬆', right: '➡', bottom: '⬇', left: '⬅' };
 
   function lobbyHTML() {
     const link = location.origin + '/?room=' + S.room;
@@ -400,7 +397,26 @@
     el.innerHTML = sortedHand(g.hand).filter(c => !inSlots.has(c.id))
       .map(c => cardHTML(c, (isSel(c.id) ? 'sel ' : '') + (receivedIds.has(c.id) ? 'new' : ''))).join('');
     el.scrollLeft = scroll;
+    const mini = $('#hand-mini');
+    mini.classList.toggle('hidden', !bigHand);
+    if (bigHand) {
+      mini.innerHTML = sortedHand(g.hand).filter(c => !inSlots.has(c.id))
+        .map(c => `<span class="chip ${c.special ? 'sp' : 's-' + c.suit} ${isSel(c.id) ? 'sel' : ''}" data-jump="${c.id}">${chipLabel(c)}</span>`).join('');
+    }
     carousel();
+  }
+
+  function chipLabel(c) {
+    if (c.special) return { mahjong: '🐦1', dog: '🐕', phoenix: '🔥', dragon: '🐉' }[c.special];
+    return T.rankLabel(c.rank) + SUIT_SYM[c.suit];
+  }
+
+  // Karte im Karussell in die Mitte holen
+  function jumpTo(id) {
+    const hand = $('#hand');
+    const card = hand.querySelector(`.card[data-id="${id}"]`);
+    if (!card) return;
+    hand.scrollTo({ left: card.offsetLeft - hand.clientWidth / 2 + card.offsetWidth / 2, behavior: 'smooth' });
   }
 
   // Karussell-Effekt: Karten in der Mitte groß, zum Rand hin kleiner
@@ -410,11 +426,14 @@
     if (!bigHand) { cards.forEach(c => c.style.removeProperty('--s')); return; }
     const box = el.getBoundingClientRect();
     const mid = box.left + box.width / 2;
+    const visible = new Set();
     cards.forEach(c => {
       const r = c.getBoundingClientRect();
       const d = Math.min(1, Math.abs(r.left + r.width / 2 - mid) / (box.width / 2));
       c.style.setProperty('--s', (1 - 0.25 * d).toFixed(3));
+      if (r.right > box.left + 8 && r.left < box.right - 8) visible.add(c.dataset.id);
     });
+    document.querySelectorAll('#hand-mini .chip').forEach(ch => ch.classList.toggle('vis', visible.has(ch.dataset.jump)));
   }
 
   function renderLog() {
@@ -546,6 +565,8 @@
   document.addEventListener('click', ev => {
     const card = ev.target.closest('#hand .card');
     if (card) return onHandClick(card.dataset.id);
+    const chip = ev.target.closest('#hand-mini .chip');
+    if (chip) { jumpTo(chip.dataset.jump); return; }
     const slot = ev.target.closest('.ex-slot[data-slot]');
     if (slot) { onSlotClick(slot.dataset.slot); return; }
     const btn = ev.target.closest('[data-act]');
@@ -557,6 +578,11 @@
   });
 
   $('#hand').addEventListener('scroll', () => requestAnimationFrame(carousel), { passive: true });
+  $('#hand').addEventListener('wheel', ev => {
+    if (!bigHand || Math.abs(ev.deltaY) <= Math.abs(ev.deltaX)) return;
+    ev.preventDefault();
+    $('#hand').scrollLeft += ev.deltaY;
+  }, { passive: false });
   window.addEventListener('resize', () => carousel());
 
   // Countdown für das Zeitlimit

@@ -39,10 +39,12 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
   Zeitlimit ohne oder 30 s pro Zug (Schupfen 60 s). Läuft die Zeit ab, wird automatisch gepasst bzw. die
   niedrigste Karte gespielt; beim Schupfen werden Karten automatisch gewählt.
 - **Zug-Anzeige:** Ein goldener Pfeil zeigt auf den Spieler am Zug, dazu „AM ZUG“ mit Countdown.
-  „🃏 liegt vorne“ markiert, wer die oberste Karte gespielt hat, „✋ gepasst“ wer im Stich schon gepasst hat.
+  Gespielte Karten liegen in Richtung des Spielers, der sie gelegt hat. „🃏 liegt vorne“ markiert, wer die
+  oberste Karte gespielt hat, „✋ gepasst“ wer im Stich schon gepasst hat.
 - **Schupfen:** Reihenfolge frei wählbar – erst Spieler-Feld, dann Karte antippen oder umgekehrt.
   Antippen einer Karte im Feld legt sie zurück.
-- **Große Karten (🔍 Groß):** Die Hand wird zum Karussell mit großen Karten, durch das man wischen kann.
+- **Große Karten (🔍 Groß):** Die Hand wird zum Karussell mit großen Karten, durch das man wischen kann
+  (am PC mit dem Mausrad). Darüber zeigt eine Mini-Übersicht alle Handkarten – antippen springt zur Karte.
 - Verbindungsabbruch? Einfach die Seite neu laden – man landet wieder auf seinem Platz
   (auch von einem anderen Gerät mit demselben Namen).
 

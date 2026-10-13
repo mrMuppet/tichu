@@ -144,19 +144,31 @@ input, select {
 /* ---------- Mitte ---------- */
 #center {
   position: absolute; left: 50%; top: 54%; transform: translate(-50%, -50%);
-  width: min(560px, calc(100% - 340px));
+  width: min(640px, calc(100% - 270px));
   display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
 #status { text-align: center; font-size: 15px; min-height: 22px; }
 #status .wish { display: inline-block; background: var(--gold); color: #2b2100; padding: 2px 10px; border-radius: 10px; font-weight: 700; margin: 2px; }
 #status .closing-bar { height: 4px; background: rgba(255, 255, 255, .2); border-radius: 2px; overflow: hidden; margin-top: 4px; }
 #status .closing-bar div { height: 100%; background: var(--gold); }
-#trick { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 120px; }
-.play { display: flex; flex-direction: column; align-items: center; }
-.play .who { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
-.play.old { opacity: .45; transform: scale(.7); margin-bottom: -34px; margin-top: -14px; }
-.play.old .who { display: none; }
-.play.last-trick { opacity: .4; }
+/* Gespielte Karten liegen in Richtung des Spielers, der sie gelegt hat */
+#trick { position: relative; width: 100%; height: 230px; container-type: inline-size; }
+#status { order: 2; }
+.play {
+  position: absolute; left: 50%; top: 50%;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  --dx: 0px; --dy: 0px; --sc: 1;
+  transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(var(--sc));
+  transition: transform .25s ease-out;
+}
+.play.p-top { --dy: -66px; }
+.play.p-bottom { --dy: 66px; }
+.play.p-left { --dx: -30cqw; }
+.play.p-right { --dx: 30cqw; }
+.play.old { opacity: .5; --sc: .8; }
+.play.last-trick { opacity: .35; --sc: .8; }
+.play .desc { font-size: 12px; color: var(--text); background: rgba(0, 0, 0, .35); padding: 1px 8px; border-radius: 8px; white-space: nowrap; }
+.play.current .cards { filter: drop-shadow(0 0 8px rgba(255, 255, 255, .35)); }
 .cards { display: flex; }
 .cards .card { margin-left: -18px; }
 .cards .card:first-child { margin-left: 0; }
@@ -206,6 +218,17 @@ input, select {
 #hand .card:hover { --ty: -6px; }
 #hand .card.sel { --ty: -18px; box-shadow: 0 0 0 3px var(--gold), 0 6px 12px rgba(0, 0, 0, .5); }
 
+/* Übersicht aller Handkarten in der großen Ansicht */
+#hand-mini { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; max-width: 100%; }
+#hand-mini .chip {
+  font-size: 13px; font-weight: 700; padding: 2px 5px; border-radius: 5px; cursor: pointer;
+  background: rgba(255, 253, 246, .55); border: 1px solid transparent; line-height: 1.3;
+}
+#hand-mini .chip.vis { background: #fffdf6; }
+#hand-mini .chip.sel { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+#hand-mini .chip.sp { color: #333; }
+#hand { position: relative; }
+
 /* Große Karten zum Durchwischen (Karussell) */
 #hand.big {
   --cw: 92px; --ch: 134px;
@@ -252,8 +275,6 @@ input, select {
 .countdown-inline { display: inline-block; background: rgba(0, 0, 0, .35); border-radius: 10px; padding: 2px 10px; }
 .countdown-inline [data-cd].urgent { color: #ff8a8a; }
 #status .my-turn { color: var(--gold); font-size: 18px; }
-.play.current .who { font-size: 14px; color: var(--text); }
-.play.current .from { background: #2f8f4e; color: #fff; border-radius: 10px; padding: 2px 10px; font-weight: 700; margin-right: 4px; }
 
 /* ---------- Einstellungen ---------- */
 .opts { border: 1px solid rgba(255, 255, 255, .2); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; margin: 0; }
@@ -314,6 +335,11 @@ input, select {
   #hand { --cw: 52px; --ch: 76px; --overlap: -29px; }
   #hand.big { --cw: 86px; --ch: 125px; }
   #turn-arrow { font-size: 40px; }
+  #trick { height: 230px; }
+  .play.p-top { --dy: -58px; }
+  .play.p-left { --dx: -22cqw; --dy: -40px; }
+  .play.p-right { --dx: 22cqw; --dy: -40px; }
+  .play.p-bottom { --dy: 58px; }
   #turn-arrow.at-top, #turn-arrow.at-left, #turn-arrow.at-right { top: 104px; right: auto; transform: translateX(-50%) rotate(-90deg); }
   #turn-arrow.at-top { left: 50%; }
   #turn-arrow.at-left { left: 16.6%; }
