@@ -199,7 +199,7 @@
   // Kleiner Kartenfächer mit der Anzahl der Handkarten
   function fanHTML(n) {
     if (!n) return '<div class="fan empty"><span class="fan-count">0</span></div>';
-    const step = n > 1 ? Math.min(10, 80 / (n - 1)) : 0;
+    const step = 7; // fester Winkel pro Karte: der Fächer wächst mit der Anzahl
     let backs = '';
     for (let i = 0; i < n; i++) {
       const a = (i - (n - 1) / 2) * step;
