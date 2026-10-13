@@ -71,7 +71,7 @@ input, select {
 #game {
   height: 100%;
   display: grid;
-  grid-template-columns: 1fr var(--side-w);
+  grid-template-columns: minmax(0, 1fr) var(--side-w);
   grid-template-rows: auto 1fr auto;
   grid-template-areas: "top top" "table side" "me side";
 }
@@ -91,7 +91,7 @@ input, select {
 .top-actions { display: flex; gap: 6px; }
 
 #table { grid-area: table; position: relative; min-height: 0; }
-#me { grid-area: me; padding: 4px 10px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#me { grid-area: me; min-width: 0; padding: 4px 10px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 #side {
   grid-area: side;
   display: flex; flex-direction: column;
@@ -143,7 +143,7 @@ input, select {
 
 /* ---------- Mitte ---------- */
 #center {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  position: absolute; left: 50%; top: 54%; transform: translate(-50%, -50%);
   width: min(560px, calc(100% - 340px));
   display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
@@ -154,7 +154,8 @@ input, select {
 #trick { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 120px; }
 .play { display: flex; flex-direction: column; align-items: center; }
 .play .who { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
-.play.old { opacity: .5; transform: scale(.8); margin-bottom: -18px; }
+.play.old { opacity: .45; transform: scale(.7); margin-bottom: -34px; margin-top: -14px; }
+.play.old .who { display: none; }
 .play.last-trick { opacity: .4; }
 .cards { display: flex; }
 .cards .card { margin-left: -18px; }
@@ -197,12 +198,76 @@ input, select {
 .card.mini { --cw: 40px; --ch: 58px; }
 
 #hand { display: flex; justify-content: center; padding-top: 18px; max-width: 100%; }
-#hand .card { margin-left: var(--overlap); cursor: pointer; transition: transform .12s; }
+#hand .card {
+  margin-left: var(--overlap); cursor: pointer; transition: transform .12s;
+  transform: translateY(var(--ty, 0)) scale(var(--s, 1)); transform-origin: center bottom;
+}
 #hand .card:first-child { margin-left: 0; }
-#hand .card:hover { transform: translateY(-6px); }
-#hand .card.sel { transform: translateY(-18px); box-shadow: 0 0 0 3px var(--gold), 0 6px 12px rgba(0, 0, 0, .5); }
+#hand .card:hover { --ty: -6px; }
+#hand .card.sel { --ty: -18px; box-shadow: 0 0 0 3px var(--gold), 0 6px 12px rgba(0, 0, 0, .5); }
+
+/* Große Karten zum Durchwischen (Karussell) */
+#hand.big {
+  --cw: 92px; --ch: 134px;
+  justify-content: flex-start;
+  overflow-x: auto; overflow-y: hidden;
+  width: 100%;
+  padding: 22px 40% 4px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+#hand.big::-webkit-scrollbar { display: none; }
+#hand.big .card { margin-left: -14px; scroll-snap-align: center; transition: transform .08s; }
+#hand.big .card:first-child { margin-left: 0; }
+#hand.big .card.sel { --ty: -20px; }
 #hand .card.new::after { content: "neu"; position: absolute; top: -9px; left: 2px; background: var(--gold); color: #2b2100; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 6px; }
 #hand.waiting .card { cursor: default; }
+
+/* ---------- Zug-Anzeige ---------- */
+#turn-arrow {
+  position: absolute; z-index: 5; pointer-events: none;
+  font-size: 54px; line-height: 1; color: var(--gold);
+  text-shadow: 0 0 14px rgba(242, 193, 78, .8), 0 2px 4px rgba(0, 0, 0, .6);
+}
+#turn-arrow span { display: inline-block; animation: nudge .9s ease-in-out infinite; }
+@keyframes nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(10px); } }
+#turn-arrow.at-top { top: 118px; left: 50%; transform: translateX(-50%) rotate(-90deg); }
+#turn-arrow.at-bottom { bottom: 0; left: 50%; transform: translateX(-50%) rotate(90deg); }
+#turn-arrow.at-left { left: 168px; top: 50%; transform: translateY(-50%) rotate(180deg); }
+#turn-arrow.at-right { right: 168px; top: 50%; transform: translateY(-50%); }
+
+.seat.turn { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(242, 193, 78, .45); }
+  50% { box-shadow: 0 0 26px rgba(242, 193, 78, .95); }
+}
+.seat.passed { opacity: .6; }
+.seat.leading { border-color: #7fd17f; }
+.seat.turn.leading { border-color: var(--gold); }
+.badge.turn-badge { background: var(--gold); color: #2b2100; font-size: 12px; }
+.badge.lead { background: #2f8f4e; color: #fff; }
+.badge.passed { background: #555; color: #ddd; }
+[data-cd].urgent { color: #b00000; font-weight: 800; }
+.countdown-inline { display: inline-block; background: rgba(0, 0, 0, .35); border-radius: 10px; padding: 2px 10px; }
+.countdown-inline [data-cd].urgent { color: #ff8a8a; }
+#status .my-turn { color: var(--gold); font-size: 18px; }
+.play.current .who { font-size: 14px; color: var(--text); }
+.play.current .from { background: #2f8f4e; color: #fff; border-radius: 10px; padding: 2px 10px; font-weight: 700; margin-right: 4px; }
+
+/* ---------- Einstellungen ---------- */
+.opts { border: 1px solid rgba(255, 255, 255, .2); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; margin: 0; }
+.opts legend { color: var(--muted); font-size: 13px; padding: 0 6px; }
+.opt-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
+.seg { display: inline-flex; border: 1px solid rgba(255, 255, 255, .3); border-radius: 8px; overflow: hidden; }
+.seg label { cursor: pointer; }
+.seg input { display: none; }
+.seg label span { display: block; padding: 6px 12px; font-size: 14px; }
+.seg input:checked + span { background: var(--gold); color: #2b2100; font-weight: 600; }
+.seg button { border: 0; border-radius: 0; }
+.seg button.on { background: var(--gold); color: #2b2100; font-weight: 600; }
+.lobby-opts { display: flex; flex-direction: column; gap: 6px; background: rgba(0, 0, 0, .2); border-radius: 10px; padding: 8px 12px; }
+#settings-info { color: var(--muted); font-size: 12px; margin-left: 6px; }
 
 /* ---------- Aktionen ---------- */
 #actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; min-height: 40px; }
@@ -210,12 +275,21 @@ input, select {
 #actions .hint.bad { color: #ffb4a8; }
 #actions .hint.good { color: #c8f7c5; }
 .ex-slots { display: flex; gap: 10px; }
-.ex-slot { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; color: var(--muted); }
-.ex-slot .drop {
-  width: 44px; height: 64px; border: 2px dashed rgba(255, 255, 255, .35); border-radius: 7px;
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
+.ex-slot {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; color: var(--muted);
+  cursor: pointer; padding: 6px 8px; border-radius: 10px; border: 2px solid transparent; min-width: 74px;
 }
-.ex-slot .drop .card { --cw: 40px; --ch: 58px; }
+.ex-slot b { color: var(--text); font-size: 12px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ex-slot.active { border-color: var(--gold); background: rgba(242, 193, 78, .15); }
+.ex-slot .drop {
+  width: 48px; height: 70px; border: 2px dashed rgba(255, 255, 255, .35); border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+}
+.ex-slot.active .drop { border-color: var(--gold); }
+.ex-slot .plus { font-size: 24px; color: rgba(255, 255, 255, .4); }
+.ex-slot .drop .card { --cw: 44px; --ch: 64px; }
+.ex-side { display: flex; gap: 8px; align-items: center; }
+.ex-hint { flex-basis: 100%; text-align: center; }
 
 /* ---------- Overlay ---------- */
 #overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .55); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
@@ -237,7 +311,14 @@ input, select {
 /* ---------- Mobil ---------- */
 @media (max-width: 900px) {
   :root { --cw: 46px; --ch: 68px; --overlap: -22px; }
-  #game { grid-template-columns: 1fr; grid-template-areas: "top" "table" "me"; }
+  #hand { --cw: 52px; --ch: 76px; --overlap: -29px; }
+  #hand.big { --cw: 86px; --ch: 125px; }
+  #turn-arrow { font-size: 40px; }
+  #turn-arrow.at-top, #turn-arrow.at-left, #turn-arrow.at-right { top: 104px; right: auto; transform: translateX(-50%) rotate(-90deg); }
+  #turn-arrow.at-top { left: 50%; }
+  #turn-arrow.at-left { left: 16.6%; }
+  #turn-arrow.at-right { left: 83.3%; }
+  #game { grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "table" "me"; }
   #side { position: fixed; right: 0; top: 44px; bottom: 0; width: min(320px, 90vw); z-index: 40; background: #123526; }
   #side:not(.open) { display: none; }
   #center { width: calc(100% - 24px); top: 56%; }
@@ -257,6 +338,10 @@ input, select {
 }
 @media (max-width: 560px) {
   :root { --cw: 40px; --ch: 60px; --overlap: -20px; }
+  #hand { --cw: 50px; --ch: 74px; --overlap: -28px; }
+  #hand.big { --cw: 86px; --ch: 125px; }
+  .ex-slots { gap: 4px; }
+  .ex-slot { min-width: 0; padding: 4px; }
   .cards .card { margin-left: -16px; }
   #topbar { font-size: 12px; }
   .seat .name { font-size: 13px; }

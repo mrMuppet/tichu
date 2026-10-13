@@ -90,4 +90,21 @@ function choosePlay(game, seat) {
   return action;
 }
 
-module.exports = { decide };
+// Automatischer Zug bei abgelaufener Zeit: passen wenn erlaubt, sonst niedrigster Zug.
+function timeoutAction(game, seat) {
+  if (game.phase === 'play' && game.turn === seat && !game.closing) {
+    const top = game.trick ? game.trick.top : null;
+    const must = game.mustFulfill(seat);
+    if (top && !must) return { type: 'pass' };
+    const plays = T.legalPlays(game.hands[seat], top, must ? game.wish : null)
+      .filter(p => p.combo.type !== 'dog' || !top);
+    const pool = plays.filter(p => !T.isBomb(p.combo));
+    const list = (pool.length ? pool : plays).sort((a, b) =>
+      (a.cards.length - b.cards.length) || (a.combo.rank - b.combo.rank));
+    if (!list.length) return { type: 'pass' };
+    return { type: 'play', ids: list[0].cards.map(c => c.id) };
+  }
+  return decide(game, seat);
+}
+
+module.exports = { decide, timeoutAction };

@@ -16,9 +16,11 @@ function shuffle(arr) {
 const team = seat => seat % 2;
 
 class Game {
-  constructor(names, onChange) {
+  constructor(names, onChange, settings) {
     this.names = names;          // Funktion seat -> Name
     this.onChange = onChange;    // wird nach asynchronen Änderungen aufgerufen
+    this.target = (settings && settings.target) || WIN_SCORE;
+    this.moves = 0;              // zählt Züge (für das Zeitlimit)
     this.scores = [0, 0];
     this.history = [];
     this.round = 0;
@@ -154,11 +156,13 @@ class Game {
     if (this.closing) { clearTimeout(this.closing.timer); this.closing = null; }
     this.hands[seat] = hand.filter(c => !ids.includes(c.id));
     this.hasPlayed[seat] = true;
-    if (!this.trick) this.trick = { plays: [], top: null, lastSeat: null, passes: 0 };
+    if (!this.trick) this.trick = { plays: [], top: null, lastSeat: null, passes: 0, passed: [false, false, false, false] };
     this.trick.plays.push({ seat, cards: T.sortCards(cards), combo });
     this.trick.top = combo;
     this.trick.lastSeat = seat;
     this.trick.passes = 0;
+    this.trick.passed = [false, false, false, false];
+    this.moves++;
 
     let msg = `${this.name(seat)}: ${T.describe(combo)}`;
     if (!myTurn) msg += ' — BOMBE außer der Reihe!';
@@ -201,6 +205,8 @@ class Game {
     if (!this.trick) return 'Du musst ausspielen.';
     if (this.mustFulfill(seat)) return `Du musst den Wunsch (${T.rankLabel(this.wish)}) erfüllen!`;
     this.trick.passes++;
+    this.trick.passed[seat] = true;
+    this.moves++;
     this.log(`${this.name(seat)} passt.`);
     const lastActive = this.hands[this.trick.lastSeat].length > 0;
     const needed = this.activeSeats().length - (lastActive ? 1 : 0);
@@ -320,7 +326,7 @@ class Game {
     this.log(`Runde ${this.round} beendet: ${total[0]} : ${total[1]} (Stand ${this.scores[0]} : ${this.scores[1]})`);
     this.ready = [false, false, false, false];
     const max = Math.max(...this.scores);
-    if (max >= WIN_SCORE && this.scores[0] !== this.scores[1]) {
+    if (max >= this.target && this.scores[0] !== this.scores[1]) {
       this.phase = 'gameOver';
       const w = this.scores[0] > this.scores[1] ? 0 : 1;
       this.winner = w;
@@ -352,13 +358,13 @@ class Game {
 
   view(seat) {
     const v = {
-      phase: this.phase, round: this.round, scores: this.scores, history: this.history,
+      phase: this.phase, round: this.round, target: this.target, scores: this.scores, history: this.history,
       logs: this.logs.slice(-60), turn: this.turn, wish: this.wish,
       tichu: this.tichu, finished: this.finished,
       counts: this.hands ? this.hands.map(h => h.length) : [0, 0, 0, 0],
       grandDecided: this.grandDecided, exchanged: this.exchange ? this.exchange.map(Boolean) : null,
       ready: this.ready, result: this.result, winner: this.winner,
-      trick: this.trick ? { plays: this.trick.plays.map(p => ({ seat: p.seat, cards: p.cards, desc: T.describe(p.combo) })), lastSeat: this.trick.lastSeat, top: this.trick.top } : null,
+      trick: this.trick ? { plays: this.trick.plays.map(p => ({ seat: p.seat, cards: p.cards, desc: T.describe(p.combo) })), lastSeat: this.trick.lastSeat, top: this.trick.top, passed: this.trick.passed } : null,
       lastTrick: this.lastTrick ? { plays: this.lastTrick.plays.map(p => ({ seat: p.seat, cards: p.cards })) } : null,
       closing: this.closing ? { winner: this.closing.winner, ms: Math.max(0, this.closing.until - Date.now()) } : null,
       dragonWinner: this.dragonPending ? this.dragonPending.winner : null,

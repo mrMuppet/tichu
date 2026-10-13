@@ -16,6 +16,23 @@
       <label>Dein Name
         <input id="name-input" maxlength="20" autocomplete="nickname" placeholder="z. B. Vasco">
       </label>
+      <fieldset class="opts">
+        <legend>Einstellungen für einen neuen Tisch</legend>
+        <div class="opt-row">
+          <span>Spiel bis</span>
+          <div class="seg">
+            <label><input type="radio" name="target" value="500"><span>500</span></label>
+            <label><input type="radio" name="target" value="1000" checked><span>1000</span></label>
+          </div>
+        </div>
+        <div class="opt-row">
+          <span>Zeitlimit</span>
+          <div class="seg">
+            <label><input type="radio" name="timelimit" value="0" checked><span>ohne</span></label>
+            <label><input type="radio" name="timelimit" value="1"><span>30 s pro Zug</span></label>
+          </div>
+        </div>
+      </fieldset>
       <button id="create-btn" class="primary">Neuen Tisch erstellen</button>
       <div class="or">oder</div>
       <div class="join-row">
@@ -32,6 +49,7 @@
       <div class="room-info">
         Tisch <b id="room-code"></b>
         <button id="copy-link" class="small" title="Einladungslink kopieren">🔗 Link kopieren</button>
+        <span id="settings-info"></span>
       </div>
       <div id="scoreboard"></div>
       <div class="top-actions">
@@ -44,6 +62,7 @@
       <div class="seat pos-top" id="seat-top"></div>
       <div class="seat pos-left" id="seat-left"></div>
       <div class="seat pos-right" id="seat-right"></div>
+      <div id="turn-arrow" class="hidden"><span>➜</span></div>
       <div id="center">
         <div id="status"></div>
         <div id="trick"></div>

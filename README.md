@@ -35,7 +35,14 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
   gepasst wurde (Balken unter „Stich geht an …“).
 - Beim Spielen des Mah Jong erscheint eine Auswahl für den **Wunsch**. Wer den gewünschten Wert
   regelkonform spielen kann (notfalls als Bombe), wird dazu gezwungen.
-- **Schupfen:** Karten anklicken, sie wandern nacheinander in die Felder Links / Partner / Rechts.
+- **Tisch-Einstellungen** (beim Erstellen und im Warteraum änderbar): Spiel bis 500 oder 1000 Punkte,
+  Zeitlimit ohne oder 30 s pro Zug (Schupfen 60 s). Läuft die Zeit ab, wird automatisch gepasst bzw. die
+  niedrigste Karte gespielt; beim Schupfen werden Karten automatisch gewählt.
+- **Zug-Anzeige:** Ein goldener Pfeil zeigt auf den Spieler am Zug, dazu „AM ZUG“ mit Countdown.
+  „🃏 liegt vorne“ markiert, wer die oberste Karte gespielt hat, „✋ gepasst“ wer im Stich schon gepasst hat.
+- **Schupfen:** Reihenfolge frei wählbar – erst Spieler-Feld, dann Karte antippen oder umgekehrt.
+  Antippen einer Karte im Feld legt sie zurück.
+- **Große Karten (🔍 Groß):** Die Hand wird zum Karussell mit großen Karten, durch das man wischen kann.
 - Verbindungsabbruch? Einfach die Seite neu laden – man landet wieder auf seinem Platz
   (auch von einem anderen Gerät mit demselben Namen).
 

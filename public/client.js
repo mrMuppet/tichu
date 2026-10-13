@@ -15,6 +15,10 @@
   let S = null;             // letzter Zustand vom Server
   let selected = new Set(); // ausgewählte Karten-IDs
   let exSlots = { left: null, partner: null, right: null };
+  let exActive = null;      // gewähltes Schupf-Feld (Spieler)
+  let exPick = null;        // gewählte Karte fürs Schupfen
+  let bigHand = store.get('tichu.bigHand') === '1';
+  let timerEnd = null, warned = false;
   let wishValue = '';
   let sortBySuit = store.get('tichu.sortSuit') === '1';
   let wasMyTurn = false;
@@ -44,6 +48,9 @@
         $('#room-code').textContent = room;
       } else if (msg.t === 'state') {
         S = msg.state;
+        const newEnd = S.timer ? Date.now() + S.timer.ms : null;
+        if (!newEnd || !timerEnd || Math.abs(newEnd - timerEnd) > 1500) warned = false;
+        timerEnd = newEnd;
         render();
       } else if (msg.t === 'error') {
         toast(msg.msg);
@@ -58,8 +65,10 @@
     if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
   }
 
+  let newSettings = null; // nur beim Erstellen eines Tisches
   function sendJoin() {
-    send({ t: 'join', room, name: store.get('tichu.name') || 'Spieler', token: store.get('tichu.token.' + room) });
+    send({ t: 'join', room, name: store.get('tichu.name') || 'Spieler', token: store.get('tichu.token.' + room), settings: newSettings });
+    newSettings = null;
   }
 
   function startJoin(code) {
@@ -67,6 +76,13 @@
     if (!name) { toast('Bitte gib deinen Namen ein.'); $('#name-input').focus(); return; }
     store.set('tichu.name', name);
     room = code;
+    if (!code) {
+      newSettings = {
+        target: Number(document.querySelector('input[name=target]:checked').value),
+        timeLimit: document.querySelector('input[name=timelimit]:checked').value === '1',
+      };
+      store.set('tichu.settings', JSON.stringify(newSettings));
+    }
     if (ws && ws.readyState === 1) sendJoin();
   }
 
@@ -135,7 +151,8 @@
     // Auswahl bereinigen
     const handIds = new Set(g && g.hand ? g.hand.map(c => c.id) : []);
     for (const id of [...selected]) if (!handIds.has(id)) selected.delete(id);
-    if (!g || g.phase !== 'exchange' || (g.myExchange)) exSlots = { left: null, partner: null, right: null };
+    if (!g || g.phase !== 'exchange' || (g.myExchange)) { exSlots = { left: null, partner: null, right: null }; exActive = null; exPick = null; }
+    if (exPick && !handIds.has(exPick)) exPick = null;
     for (const k in exSlots) if (exSlots[k] && !handIds.has(exSlots[k])) exSlots[k] = null;
 
     renderScore();
@@ -160,10 +177,20 @@
       `<div class="team ${i === t ? 'mine' : ''}"><span class="team-dot team-${i}" style="width:9px;height:9px;border-radius:50%;display:inline-block"></span>` +
       `<span class="names">${esc(nameOf(i))} & ${esc(nameOf(i + 2))}</span><span class="pts">${scores[i]}</span></div>`
     ).join('<span>:</span>');
+    const st = S.settings || {};
+    $('#settings-info').textContent = `bis ${st.target || 1000}` + (st.timeLimit ? ' · ⏱ 30 s' : '');
+  }
+
+  // Wer muss gerade handeln?
+  function actingSeat(g) {
+    if (g.phase === 'play' && !g.closing) return g.turn;
+    if (g.phase === 'dragon') return g.dragonWinner;
+    return null;
   }
 
   function renderSeats() {
     const g = S.game;
+    const acting = g ? actingSeat(g) : null;
     for (let seat = 0; seat < 4; seat++) {
       const el = $('#seat-' + posOf(seat));
       const info = S.seats[seat];
@@ -171,6 +198,12 @@
       el.classList.remove('hidden');
       const count = g.counts[seat];
       const badges = [];
+      const isMe = seat === me();
+      const passed = !!(g.trick && g.trick.passed && g.trick.passed[seat]);
+      const leading = !!(g.trick && g.trick.lastSeat === seat);
+      if (acting === seat) badges.push(`<span class="badge turn-badge">${isMe ? 'DU BIST DRAN' : 'AM ZUG'} <span data-cd></span></span>`);
+      if (leading) badges.push('<span class="badge lead">🃏 liegt vorne</span>');
+      if (passed) badges.push('<span class="badge passed">✋ gepasst</span>');
       if (g.tichu[seat] === 'small') badges.push('<span class="badge tichu">TICHU</span>');
       if (g.tichu[seat] === 'grand') badges.push('<span class="badge grand">GROSSES TICHU</span>');
       const place = g.finished.indexOf(seat);
@@ -182,15 +215,18 @@
       else if (g.phase === 'roundEnd') meta.push(g.ready[seat] || (info && info.bot) ? '✓ bereit' : 'wartet…');
       else meta.push(`${count} Karten`);
       meta.push(`Stiche: ${g.trickPoints[seat]} P.`);
-      const turn = g.turn === seat || (g.phase === 'dragon' && g.dragonWinner === seat);
-      el.classList.toggle('turn', turn);
-      const isMe = seat === me();
+      el.classList.toggle('turn', acting === seat);
+      el.classList.toggle('passed', passed);
+      el.classList.toggle('leading', leading);
       el.innerHTML =
         `<div class="name"><span class="team-dot team-${team(seat)}"></span>${esc(nameOf(seat))}${isMe ? ' (du)' : ''}${info && info.bot ? ' 🤖' : ''}</div>` +
         (badges.length ? `<div class="meta">${badges.join('')}</div>` : '') +
         (!isMe ? `<div class="backs">${'<div class="back"></div>'.repeat(Math.min(count, 14))}</div>` : '') +
         `<div class="meta">${meta.join(' · ')}</div>`;
     }
+    // Pfeil zum Spieler, der am Zug ist
+    const arrow = $('#turn-arrow');
+    arrow.className = g && acting !== null && acting !== undefined ? 'at-' + posOf(acting) : 'hidden';
   }
 
   function renderCenter() {
@@ -207,22 +243,25 @@
         parts.push(`Stich geht an <b>${esc(nameOf(g.closing.winner))}</b> – Bomben noch möglich!` +
           `<div class="closing-bar"><div style="width:100%;transition:width ${g.closing.ms}ms linear" id="cbar"></div></div>`);
       } else if (g.turn !== null) {
-        parts.push(g.turn === me() ? '<b>Du bist am Zug.</b>' : `${esc(nameOf(g.turn))} ist am Zug.`);
+        parts.push(g.turn === me() ? '<b class="my-turn">Du bist am Zug!</b>' : `<b>${esc(nameOf(g.turn))}</b> ist am Zug.`);
       }
     } else if (g.phase === 'dragon') {
       parts.push(`${esc(nameOf(g.dragonWinner))} verschenkt den Drachen-Stich…`);
     } else if (g.phase === 'roundEnd') parts.push('Runde beendet.');
     else if (g.phase === 'gameOver') parts.push('Spiel beendet.');
+    if (S.timer && (g.phase === 'grand' || g.phase === 'exchange')) parts.push('<span class="countdown-inline"><span data-cd></span></span>');
     status.innerHTML = parts.join(' ');
     const bar = document.getElementById('cbar');
     if (bar) requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = '0%'; }));
 
     let html = '';
     if (g.trick) {
-      const plays = g.trick.plays.slice(-4);
+      const plays = g.trick.plays.slice(-3);
       html = plays.map((p, i) => {
         const old = i < plays.length - 1;
-        return `<div class="play ${old ? 'old' : ''}"><div class="who">${esc(nameOf(p.seat))}${old ? '' : ' – ' + esc(p.desc)}</div>` +
+        const who = old ? esc(nameOf(p.seat))
+          : `<span class="from">${ARROWS[posOf(p.seat)]} ${p.seat === me() ? 'Du' : esc(nameOf(p.seat))}</span> ${esc(p.desc)}`;
+        return `<div class="play ${old ? 'old' : 'current'}"><div class="who">${who}</div>` +
           `<div class="cards">${p.cards.map(c => cardHTML(c)).join('')}</div></div>`;
       }).join('');
     } else if (g.lastTrick && g.phase === 'play') {
@@ -233,8 +272,12 @@
     trick.innerHTML = html;
   }
 
+  const ARROWS = { top: '⬆', right: '➡', bottom: '⬇', left: '⬅' };
+
   function lobbyHTML() {
     const link = location.origin + '/?room=' + S.room;
+    const st = S.settings || { target: 1000, timeLimit: false };
+    const canEdit = me() !== null;
     const slots = [0, 1, 2, 3].map(s => {
       const info = S.seats[s];
       const label = `Platz ${s + 1} · Team ${s % 2 === 0 ? 'A' : 'B'}`;
@@ -249,10 +292,14 @@
       }
       return `<div class="slot"><span class="label">${label}</span><div>${body}</div><div class="btns">${btns}</div></div>`;
     });
+    const seg = (key, val, options) => `<div class="seg">${options.map(([v, l]) =>
+      `<button class="small ${String(val) === String(v) ? 'on' : ''}" data-act="setting" data-key="${key}" data-val="${v}" ${canEdit ? '' : 'disabled'}>${l}</button>`).join('')}</div>`;
     const full = S.seats.every(Boolean);
     const spect = S.spectators.length ? `<div class="hint">Zuschauer: ${S.spectators.map(esc).join(', ')}</div>` : '';
     return `<div class="lobby"><h2>Warteraum – Tisch ${esc(S.room)}</h2>` +
       `<div class="share"><input readonly value="${esc(link)}" onclick="this.select()"><button class="small" data-act="copy">Kopieren</button></div>` +
+      `<div class="lobby-opts"><div class="opt-row"><span>Spiel bis</span>${seg('target', st.target, [[500, '500'], [1000, '1000']])}</div>` +
+      `<div class="opt-row"><span>Zeitlimit</span>${seg('timeLimit', st.timeLimit ? 1 : 0, [[0, 'ohne'], [1, '30 s pro Zug']])}</div></div>` +
       `<div class="hint">Partner sitzen sich gegenüber: Plätze 1 & 3 gegen 2 & 4.</div>` +
       `<div class="seats">${slots[0]}${slots[1]}${slots[3]}${slots[2]}</div>${spect}` +
       `<button class="primary" data-act="start" ${full && me() !== null ? '' : 'disabled'}>Spiel starten</button>` +
@@ -270,29 +317,36 @@
     const el = $('#actions');
     if (!g || me() === null || !g.hand) { el.innerHTML = me() === null && g ? '<span class="hint">Du schaust zu.</span>' : ''; return; }
     const tichuBtn = g.canTichu ? '<button class="danger" data-act="tichu">Tichu!</button>' : '';
-    const sortBtn = `<button class="small" data-act="sort" title="Sortierung">${sortBySuit ? '↕ Farbe' : '↕ Wert'}</button>`;
+    const handBtn = `<button class="small" data-act="bigHand" title="Große Karten zum Durchwischen">${bigHand ? '🔍 Klein' : '🔍 Groß'}</button>`;
+    const sortBtn = `<button class="small" data-act="sort" title="Sortierung">${sortBySuit ? '↕ Farbe' : '↕ Wert'}</button>` + handBtn;
 
     if (g.phase === 'grand') {
       el.innerHTML = g.grandDecided[me()]
-        ? `<span class="hint">Warte auf die anderen…</span> ${tichuBtn}`
-        : '<button class="danger" data-act="grand1">Großes Tichu! (200)</button><button class="primary" data-act="grand0">Weiter – kein großes Tichu</button>';
+        ? `<span class="hint">Warte auf die anderen…</span> ${tichuBtn}${handBtn}`
+        : `<button class="danger" data-act="grand1">Großes Tichu! (200)</button><button class="primary" data-act="grand0">Weiter – kein großes Tichu</button>${handBtn}`;
       return;
     }
     if (g.phase === 'exchange') {
       if (g.myExchange) {
-        el.innerHTML = `<span class="hint">Geschupft. Warte auf die anderen…</span> ${tichuBtn}`;
+        el.innerHTML = `<span class="hint">Geschupft. Warte auf die anderen…</span> ${tichuBtn}${handBtn}`;
         return;
       }
       const L = (me() + 3) % 4, P = (me() + 2) % 4, R = (me() + 1) % 4;
-      const slot = (k, seat, label) => {
+      const seatOf = { left: L, partner: P, right: R };
+      const slot = (k, label) => {
         const id = exSlots[k];
         const card = id && g.hand.find(c => c.id === id);
-        return `<div class="ex-slot"><div class="drop" data-slot="${k}">${card ? cardHTML(card) : ''}</div>${label}: ${esc(nameOf(seat))}</div>`;
+        return `<div class="ex-slot ${exActive === k ? 'active' : ''}" data-slot="${k}"><div class="drop">${card ? cardHTML(card) : '<span class="plus">+</span>'}</div>` +
+          `<span class="ex-label">${label}</span><b>${esc(nameOf(seatOf[k]))}</b></div>`;
       };
       const done = exSlots.left && exSlots.partner && exSlots.right;
-      el.innerHTML = `<div class="ex-slots">${slot('left', L, 'Links')}${slot('partner', P, 'Partner')}${slot('right', R, 'Rechts')}</div>` +
-        `<button class="primary" data-act="exchange" ${done ? '' : 'disabled'}>Schupfen</button>${tichuBtn}` +
-        `<span class="hint">Karte anklicken → nächster freier Platz.</span>`;
+      let hint = 'Tippe zuerst auf einen Spieler oder auf eine Karte – die Reihenfolge bestimmst du.';
+      if (exActive) hint = `Wähle jetzt die Karte für ${nameOf(seatOf[exActive])}.`;
+      else if (exPick) hint = 'Wähle jetzt den Spieler, der diese Karte bekommt.';
+      else if (done) hint = 'Alles verteilt. Zum Ändern auf eine Karte im Feld tippen.';
+      el.innerHTML = `<div class="ex-slots">${slot('left', 'Links')}${slot('partner', 'Partner')}${slot('right', 'Rechts')}</div>` +
+        `<div class="ex-side"><button class="primary" data-act="exchange" ${done ? '' : 'disabled'}>Schupfen</button>${tichuBtn}${handBtn}</div>` +
+        `<span class="hint ex-hint">${esc(hint)}</span>`;
       return;
     }
     if (g.phase === 'play') {
@@ -340,8 +394,27 @@
       ?Object.values(g.received).map(c => c.id) : []);
     const waiting = !(g.phase === 'play' || (g.phase === 'exchange' && !g.myExchange));
     el.classList.toggle('waiting', waiting);
+    el.classList.toggle('big', bigHand);
+    const scroll = el.scrollLeft;
+    const isSel = id => (g.phase === 'exchange' ? exPick === id : selected.has(id));
     el.innerHTML = sortedHand(g.hand).filter(c => !inSlots.has(c.id))
-      .map(c => cardHTML(c, (selected.has(c.id) ? 'sel ' : '') + (receivedIds.has(c.id) ? 'new' : ''))).join('');
+      .map(c => cardHTML(c, (isSel(c.id) ? 'sel ' : '') + (receivedIds.has(c.id) ? 'new' : ''))).join('');
+    el.scrollLeft = scroll;
+    carousel();
+  }
+
+  // Karussell-Effekt: Karten in der Mitte groß, zum Rand hin kleiner
+  function carousel() {
+    const el = $('#hand');
+    const cards = el.querySelectorAll('.card');
+    if (!bigHand) { cards.forEach(c => c.style.removeProperty('--s')); return; }
+    const box = el.getBoundingClientRect();
+    const mid = box.left + box.width / 2;
+    cards.forEach(c => {
+      const r = c.getBoundingClientRect();
+      const d = Math.min(1, Math.abs(r.left + r.width / 2 - mid) / (box.width / 2));
+      c.style.setProperty('--s', (1 - 0.25 * d).toFixed(3));
+    });
   }
 
   function renderLog() {
@@ -403,13 +476,20 @@
     const g = S.game;
     if (!g || !g.hand) return;
     if (g.phase === 'exchange' && !g.myExchange) {
-      const k = ['left', 'partner', 'right'].find(k => !exSlots[k]);
-      if (k) exSlots[k] = id;
+      if (exActive) { exSlots[exActive] = id; exActive = null; exPick = null; }
+      else exPick = exPick === id ? null : id;
       render();
       return;
     }
     if (g.phase !== 'play') return;
     if (selected.has(id)) selected.delete(id); else selected.add(id);
+    render();
+  }
+
+  function onSlotClick(k) {
+    if (exPick) { exSlots[k] = exPick; exPick = null; exActive = null; }
+    else if (exSlots[k]) { exSlots[k] = null; exActive = k; }
+    else exActive = exActive === k ? null : k;
     render();
   }
 
@@ -443,6 +523,16 @@
         render();
         break;
       case 'closeHistory': showHistory = false; render(); break;
+      case 'bigHand':
+        bigHand = !bigHand;
+        store.set('tichu.bigHand', bigHand ? '1' : '0');
+        render();
+        break;
+      case 'setting': {
+        const k = el.dataset.key, v = Number(el.dataset.val);
+        send({ t: 'settings', settings: k === 'timeLimit' ? { timeLimit: !!v } : { [k]: v } });
+        break;
+      }
     }
     void g;
   }
@@ -456,8 +546,8 @@
   document.addEventListener('click', ev => {
     const card = ev.target.closest('#hand .card');
     if (card) return onHandClick(card.dataset.id);
-    const drop = ev.target.closest('.drop[data-slot]');
-    if (drop) { exSlots[drop.dataset.slot] = null; render(); return; }
+    const slot = ev.target.closest('.ex-slot[data-slot]');
+    if (slot) { onSlotClick(slot.dataset.slot); return; }
     const btn = ev.target.closest('[data-act]');
     if (btn && !btn.disabled) onAction(btn.dataset.act, btn);
   });
@@ -465,6 +555,23 @@
   document.addEventListener('change', ev => {
     if (ev.target.id === 'wish-select') wishValue = ev.target.value;
   });
+
+  $('#hand').addEventListener('scroll', () => requestAnimationFrame(carousel), { passive: true });
+  window.addEventListener('resize', () => carousel());
+
+  // Countdown für das Zeitlimit
+  setInterval(() => {
+    const left = timerEnd ? Math.max(0, Math.ceil((timerEnd - Date.now()) / 1000)) : null;
+    document.querySelectorAll('[data-cd]').forEach(n => {
+      n.textContent = left === null ? '' : '⏱ ' + left + ' s';
+      n.classList.toggle('urgent', left !== null && left <= 10);
+    });
+    const g = S && S.game;
+    const mine = g && me() !== null && ((g.phase === 'play' && g.turn === me() && !g.closing) ||
+      (g.phase === 'dragon' && g.dragonWinner === me()) ||
+      (g.phase === 'exchange' && !g.myExchange) || (g.phase === 'grand' && !g.grandDecided[me()]));
+    if (mine && left !== null && left <= 10 && !warned) { warned = true; beep(); toast('Noch 10 Sekunden!'); }
+  }, 250);
 
   // Rechtsklick/Doppelklick auf Hand = Auswahl leeren
   $('#hand').addEventListener('contextmenu', ev => { ev.preventDefault(); selected.clear(); render(); });
@@ -499,6 +606,13 @@
   // Start: Name & Tisch aus URL/Speicher übernehmen
   const params = new URLSearchParams(location.search);
   const savedName = store.get('tichu.name');
+  try {
+    const st = JSON.parse(store.get('tichu.settings') || 'null');
+    if (st) {
+      const t = document.querySelector(`input[name=target][value="${st.target}"]`); if (t) t.checked = true;
+      const l = document.querySelector(`input[name=timelimit][value="${st.timeLimit ? 1 : 0}"]`); if (l) l.checked = true;
+    }
+  } catch (e) { /* egal */ }
   if (savedName) $('#name-input').value = savedName;
   const urlRoom = (params.get('room') || '').toUpperCase();
   if (urlRoom) {
