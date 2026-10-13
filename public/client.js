@@ -388,7 +388,7 @@
       } else if (myTurn && g.mustFulfill) {
         hint = `Wunsch: Du musst eine ${T.rankLabel(g.wish)} spielen!`; cls = 'bad';
       } else if (myTurn) {
-        hint = top ? 'Wähle Karten oder passe.' : 'Du spielst aus.';
+        hint = top ? '' : 'Du spielst aus.';
       }
       const isBombPlay = canPlay && T.isBomb(combo) && !myTurn;
       const hasMJ = cards.some(c => c.special === 'mahjong');
