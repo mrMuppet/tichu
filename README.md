@@ -33,8 +33,8 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 - Karten anklicken zum Auswählen, **Spielen** (Enter) oder **Passen** (Leertaste), Esc/Rechtsklick hebt die Auswahl auf.
 - **Bomben** können jederzeit außer der Reihe gespielt werden – auch noch kurz nachdem dreimal
   gepasst wurde (Balken unter „Stich geht an …“).
-- **Automatisches Überspringen:** Wer weniger Karten hat, als die liegende Kombination braucht, und keine
-  passende Bombe hält, wird automatisch übersprungen.
+- **Automatisches Überspringen:** Wer weniger Karten hat, als die liegende Kombination braucht, wird
+  automatisch übersprungen – außer man hat noch mindestens 4 Karten (dann wäre eine Bombe denkbar).
 - Beim Spielen des Mah Jong erscheint eine Auswahl für den **Wunsch**. Wer den gewünschten Wert
   regelkonform spielen kann (notfalls als Bombe), wird dazu gezwungen.
 - **Tisch-Einstellungen** (beim Erstellen und im Warteraum änderbar): Spiel bis 500 oder 1000 Punkte,

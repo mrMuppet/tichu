@@ -181,3 +181,9 @@ test('Autoskip: alle übersprungen -> Stich wird abgeschlossen', () => {
   assert.ok(g.closing, 'alle anderen übersprungen');
   clearTimeout(g.closing.timer);
 });
+
+test('Autoskip: ab 4 Karten nie überspringen, auch ohne Bombe', () => {
+  const g = setup('j3 s4 p5 t6 j7 s9', 'j8 s10 p12 t2', 'j10', 't12');
+  ok(g.play(0, ids('j3 s4 p5 t6 j7')));     // Straße (5 Karten)
+  assert.strictEqual(g.turn, 1, 'P1 hat 4 Karten (keine Bombe) und muss selbst passen');
+});

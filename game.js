@@ -218,13 +218,12 @@ class Game {
     }
   }
 
-  // Automatisch überspringen, wer weniger Karten hat als die Kombination braucht
-  // und auch keine passende Bombe hält.
+  // Automatisch überspringen, wer weniger Karten hat als die Kombination braucht.
+  // Ab 4 Karten wäre eine Bombe denkbar – dann nie überspringen (verrät nichts über die Hand).
   autoSkip() {
     if (this.phase !== 'play' || this.turn === null || this.closing || !this.trick) return;
-    const seat = this.turn, hand = this.hands[seat], top = this.trick.top;
-    if (hand.length >= top.len) return;
-    if (T.legalPlays(hand, top).some(p => T.isBomb(p.combo))) return;
+    const seat = this.turn, n = this.hands[seat].length;
+    if (n >= this.trick.top.len || n >= 4) return;
     this.pass(seat, 'zu wenige Karten');
   }
 
