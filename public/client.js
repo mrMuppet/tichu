@@ -108,24 +108,9 @@
   }
 
   const SUIT_SYM = { jade: '◆', sword: '⚔', pagoda: '▲', star: '★' };
-  const SPECIAL = {
-    mahjong: { sym: '🐦', r: '1', name: 'Mah Jong' },
-    dog: { sym: '🐕', r: '', name: 'Hund' },
-    phoenix: { sym: '🔥', r: '', name: 'Phönix' },
-    dragon: { sym: '🐉', r: '', name: 'Drache' },
-  };
 
   function cardHTML(c, extra) {
-    extra = extra || '';
-    if (c.special) {
-      const sp = SPECIAL[c.special];
-      return `<div class="card sp-${c.special} ${extra}" data-id="${c.id}" title="${sp.name}">` +
-        (sp.r ? `<span class="r">${sp.r}</span>` : '') +
-        `<span class="sym">${sp.sym}</span><span class="sname">${sp.name}</span></div>`;
-    }
-    const r = T.rankLabel(c.rank);
-    return `<div class="card s-${c.suit} ${extra}" data-id="${c.id}"><span class="r">${r}</span>` +
-      `<span class="sym">${SUIT_SYM[c.suit]}</span><span class="r2">${r}</span></div>`;
+    return CardArt.cardHTML(c, extra);
   }
 
   const me = () => (S && S.you !== null ? S.you : null);
@@ -731,5 +716,6 @@
     // Bekannter Tisch mit gespeichertem Namen: direkt wieder einsteigen
     if (savedName && store.get('tichu.token.' + urlRoom)) room = urlRoom;
   }
+  CardArt.installSprite();
   connect();
 })();

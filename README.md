@@ -65,5 +65,6 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 ## Entwicklung
 
 - `public/tichu-core.js` – Kombinationen und Regeln (Server und Browser)
+- `public/card-art.js` – Kartendesign: SVG-Motive (Jade, Schwert, Pagode, Stern, Phönix, Drache, Hund, Mah Jong)
 - `game.js` – Spielablauf, `bot.js` – einfacher Computerspieler, `server.js` – HTTP + WebSocket
 - `npm test` – Regeltests + 30 simulierte Bot-Partien; `node test/e2e.js` – Test über den echten Server

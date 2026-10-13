@@ -146,7 +146,7 @@ input, select {
 .fan .back {
   position: absolute; left: 50%; bottom: 0; margin: 0;
   width: 24px; height: 36px; transform-origin: 50% 150%;
-  border: 1px solid #f7e6c2; border-left-color: #fff3d6;
+  border: 1px solid #c9a24a;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .4);
 }
 .fan .back:first-child { margin-left: 0; }
@@ -162,8 +162,11 @@ input, select {
 .back {
   width: 22px; height: 32px; margin-left: -12px;
   border-radius: 3px;
-  background: repeating-linear-gradient(45deg, #8b1d1d, #8b1d1d 3px, #a52a2a 3px, #a52a2a 6px);
-  border: 1px solid #f2d7a0;
+  background:
+    repeating-radial-gradient(circle at 100% 100%, transparent 0 3px, rgba(201, 162, 74, .55) 3px 3.6px),
+    repeating-radial-gradient(circle at 0 0, transparent 0 3px, rgba(201, 162, 74, .35) 3px 3.6px),
+    #1b1b1d;
+  border: 1px solid #c9a24a;
 }
 .back:first-child { margin-left: 0; }
 
@@ -209,30 +212,64 @@ input, select {
 .lobby .share { display: flex; gap: 6px; }
 .lobby .share input { flex: 1; min-width: 0; font-size: 13px; }
 
-/* ---------- Karten ---------- */
+/* ---------- Karten (Design: dunkle Farbkarten mit Goldrahmen) ---------- */
 .card {
+  --card-bg: #2a2a2c; --card-fg: #e8e8e8; --card-line: #c9a24a; --card-idx: #f1e7cf;
   width: var(--cw); height: var(--ch);
-  border-radius: 7px;
-  background: linear-gradient(160deg, #fffdf6, #efe8d6);
-  color: #222;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, .4);
+  border-radius: calc(var(--cw) * .11);
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, .05) 0 1px, transparent 1px 3px),
+    var(--card-bg);
+  color: var(--card-fg);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 3px 7px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(255, 255, 255, .16);
   position: relative;
   flex-shrink: 0;
   user-select: none;
-  border: 1px solid #c8bfa6;
+  overflow: hidden;
 }
-.card .r { position: absolute; top: 3px; left: 6px; font-weight: 800; font-size: calc(var(--cw) * .32); line-height: 1; }
-.card .r2 { position: absolute; bottom: 3px; right: 6px; font-weight: 800; font-size: calc(var(--cw) * .32); line-height: 1; transform: rotate(180deg); }
-.card .sym { position: absolute; left: 50%; top: 54%; transform: translate(-50%, -50%); font-size: calc(var(--cw) * .5); }
-.card .sname { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font-size: calc(var(--cw) * .16); font-weight: 600; }
-.s-jade { color: #11804a; }
-.s-sword { color: #222; }
-.s-pagoda { color: #1d4fb8; }
-.s-star { color: #c62828; }
-.sp-dragon { background: linear-gradient(160deg, #ffe7d6, #f6b89a); color: #a01515; }
-.sp-phoenix { background: linear-gradient(160deg, #fff4d0, #f7d27a); color: #b35c00; }
-.sp-dog { background: linear-gradient(160deg, #f1f1f1, #cfcfcf); color: #333; }
-.sp-mahjong { background: linear-gradient(160deg, #e8f6ff, #b5dcf5); color: #0d4d7a; }
+/* feiner Goldrahmen */
+.card .frame {
+  position: absolute; inset: calc(var(--cw) * .1) calc(var(--cw) * .08);
+  border: 1px solid var(--card-line); border-radius: 2px; opacity: .85; pointer-events: none;
+}
+/* Index oben links (sichtbar auch wenn Karten überlappen) und gedreht unten rechts */
+.card .idx {
+  position: absolute; top: calc(var(--cw) * .05); left: calc(var(--cw) * .05); z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 1px 2px 2px; border-radius: 3px;
+  background: var(--card-bg);
+  color: var(--card-idx);
+}
+.card .idx b {
+  font-family: Jost, system-ui, sans-serif; font-weight: 500;
+  font-size: calc(var(--cw) * .3); line-height: 1; letter-spacing: -.5px;
+}
+.card .idx .mi { width: calc(var(--cw) * .2); height: calc(var(--cw) * .2); margin-top: 1px; color: var(--card-fg); }
+.card .idx2 { top: auto; left: auto; bottom: calc(var(--cw) * .05); right: calc(var(--cw) * .05); transform: rotate(180deg); }
+.card .big {
+  position: absolute; left: 50%; top: 52%; transform: translate(-50%, -50%);
+  width: 62%; height: 62%;
+  color: var(--card-fg);
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, .25));
+}
+
+.card.s-jade   { --card-bg: #1d6b51; --card-fg: #8ff0bd; --card-idx: #b9f7d6; }
+.card.s-sword  { --card-bg: #29292b; --card-fg: #dcdcdc; --card-idx: #f0f0f0; }
+.card.s-pagoda { --card-bg: #234e6c; --card-fg: #93d4f2; --card-idx: #c8ebfa; }
+.card.s-star   { --card-bg: #9a2d2d; --card-fg: #ff7f73; --card-idx: #ffc4bd; }
+.card.sp-phoenix { --card-bg: #2b2a2b; --card-fg: #ff9a3c; --card-line: #e0892f; --card-idx: #ffb45c; }
+.card.sp-dragon  { --card-bg: #1d2541; --card-fg: #e3342f; --card-line: #c8302c; --card-idx: #ff5a50; }
+.card.sp-dog     { --card-bg: #2e2d2e; --card-fg: #c8955c; --card-line: #a07b4f; --card-idx: #d9aa74; }
+.card.sp-mahjong { --card-bg: #172b5c; --card-fg: #f4f4f4; --card-line: #c9a24a; --card-idx: #ffffff; }
+.card.sp-dragon .big, .card.sp-phoenix .big, .card.sp-dog .big { width: 74%; height: 74%; }
+.card.sp-mahjong .big { width: 70%; height: 70%; top: 50%; }
+
+/* Farben der Mini-Übersicht */
+.chip.s-jade { color: #1d6b51; }
+.chip.s-sword { color: #29292b; }
+.chip.s-pagoda { color: #234e6c; }
+.chip.s-star { color: #9a2d2d; }
 .card.mini { --cw: 40px; --ch: 58px; }
 
 #hand { display: flex; justify-content: center; padding-top: 18px; max-width: 100%; }
@@ -383,7 +420,7 @@ input, select {
   .play.p-left { --dx: -22cqw; --dy: -40px; }
   .play.p-right { --dx: 22cqw; --dy: -40px; }
   .play.p-bottom { --dy: 58px; }
-  #turn-arrow.at-top, #turn-arrow.at-left, #turn-arrow.at-right { top: 104px; right: auto; transform: translateX(-50%) rotate(-90deg); }
+  #turn-arrow.at-top, #turn-arrow.at-left, #turn-arrow.at-right { top: 126px; right: auto; transform: translateX(-50%) rotate(-90deg); }
   #turn-arrow.at-top { left: 50%; }
   #turn-arrow.at-left { left: 16.6%; }
   #turn-arrow.at-right { left: 83.3%; }
