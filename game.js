@@ -197,9 +197,10 @@ class Game {
 
     if (this.checkRoundEnd()) return;
     this.turn = this.nextActive(seat);
+    this.autoSkip();
   }
 
-  pass(seat) {
+  pass(seat, reason) {
     if (this.phase !== 'play') return 'Gerade nicht möglich.';
     if (this.closing || this.turn !== seat) return 'Du bist nicht am Zug.';
     if (!this.trick) return 'Du musst ausspielen.';
@@ -207,11 +208,24 @@ class Game {
     this.trick.passes++;
     this.trick.passed[seat] = true;
     this.moves++;
-    this.log(`${this.name(seat)} passt.`);
+    this.log(reason ? `${this.name(seat)} wird übersprungen (${reason}).` : `${this.name(seat)} passt.`);
     const lastActive = this.hands[this.trick.lastSeat].length > 0;
     const needed = this.activeSeats().length - (lastActive ? 1 : 0);
     if (this.trick.passes >= needed) this.startClosing();
-    else this.turn = this.nextActive(seat);
+    else {
+      this.turn = this.nextActive(seat);
+      this.autoSkip();
+    }
+  }
+
+  // Automatisch überspringen, wer weniger Karten hat als die Kombination braucht
+  // und auch keine passende Bombe hält.
+  autoSkip() {
+    if (this.phase !== 'play' || this.turn === null || this.closing || !this.trick) return;
+    const seat = this.turn, hand = this.hands[seat], top = this.trick.top;
+    if (hand.length >= top.len) return;
+    if (T.legalPlays(hand, top).some(p => T.isBomb(p.combo))) return;
+    this.pass(seat, 'zu wenige Karten');
   }
 
   startClosing() {

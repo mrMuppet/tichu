@@ -145,7 +145,8 @@ test('Drache: gebombter Drache wird nicht verschenkt', () => {
   const g = setup('DR j5', 'j9 s9 p9 t9 s3', 'j4', 't12');
   ok(g.play(0, ids('DR')));
   ok(g.play(1, ids('j9 s9 p9 t9')));
-  ok(g.pass(2)); ok(g.pass(3)); ok(g.pass(0));
+  // alle anderen haben nur noch 1 Karte und werden automatisch übersprungen
+  assert.ok(g.closing);
   close(g);
   assert.strictEqual(g.phase, 'play');
   assert.ok(g.tricks[1].some(c => c.special === 'dragon'));
@@ -158,4 +159,25 @@ test('Drache als letzte Karte des Dritten: Stich wird vor der Wertung verschenkt
   assert.strictEqual(g.phase, 'dragon');
   ok(g.giveDragon(0, 1));
   assert.strictEqual(g.phase, 'roundEnd');
+});
+
+test('Autoskip: wer zu wenige Karten und keine Bombe hat, wird übersprungen', () => {
+  const g = setup('j3 s3 p3 j6 s6 t9', 's2 s4', 'j10 s10 p10 t5 j5', 't12');
+  ok(g.play(0, ids('j3 s3 p3 j6 s6')));     // Full House (5 Karten)
+  assert.strictEqual(g.turn, 2, 'P1 (2 Karten) übersprungen, P2 ist dran');
+  assert.ok(g.trick.passed[1]);
+  assert.match(g.logs.at(-1).text, /übersprungen/);
+});
+
+test('Autoskip: mit passender Bombe wird nicht übersprungen', () => {
+  const g = setup('j3 s4 p5 t6 j7 s9', 'j8 s8 p8 t8', 'j10', 't12');
+  ok(g.play(0, ids('j3 s4 p5 t6 j7')));     // Straße (5 Karten)
+  assert.strictEqual(g.turn, 1, 'P1 hat nur 4 Karten, aber eine Bombe');
+});
+
+test('Autoskip: alle übersprungen -> Stich wird abgeschlossen', () => {
+  const g = setup('j3 s3 p3 j6 s6 t9', 's2', 'j4', 't12');
+  ok(g.play(0, ids('j3 s3 p3 j6 s6')));
+  assert.ok(g.closing, 'alle anderen übersprungen');
+  clearTimeout(g.closing.timer);
 });

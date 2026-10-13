@@ -33,6 +33,8 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 - Karten anklicken zum Auswählen, **Spielen** (Enter) oder **Passen** (Leertaste), Esc/Rechtsklick hebt die Auswahl auf.
 - **Bomben** können jederzeit außer der Reihe gespielt werden – auch noch kurz nachdem dreimal
   gepasst wurde (Balken unter „Stich geht an …“).
+- **Automatisches Überspringen:** Wer weniger Karten hat, als die liegende Kombination braucht, und keine
+  passende Bombe hält, wird automatisch übersprungen.
 - Beim Spielen des Mah Jong erscheint eine Auswahl für den **Wunsch**. Wer den gewünschten Wert
   regelkonform spielen kann (notfalls als Bombe), wird dazu gezwungen.
 - **Tisch-Einstellungen** (beim Erstellen und im Warteraum änderbar): Spiel bis 500 oder 1000 Punkte,
@@ -43,7 +45,7 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
   oberste Karte gespielt hat, „✋ gepasst“ wer im Stich schon gepasst hat.
 - **Schupfen:** Reihenfolge frei wählbar – erst Spieler-Feld, dann Karte antippen oder umgekehrt.
   Antippen einer Karte im Feld legt sie zurück.
-- **Ansicht (⚙ oben rechts):** Sortierung nach Wert oder Farbe, Handkarten „Normal“ oder „Groß“.
+- **Ansicht (⚙ oben rechts):** Sortierung nach Wert oder Farbe, jeweils auf- oder absteigend; Handkarten „Normal“ oder „Groß“.
   „Groß“ macht die Hand zum Karussell mit großen Karten: wischen (Finger, Maus ziehen oder Mausrad).
   Ausgewählte Karten wandern in eine Auswahl-Reihe darüber und bleiben so immer sichtbar;
   eine Mini-Übersicht zeigt alle Handkarten – antippen springt zur Karte.

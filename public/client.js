@@ -21,6 +21,7 @@
   let timerEnd = null, warned = false;
   let wishValue = '';
   let sortBySuit = store.get('tichu.sortSuit') === '1';
+  let sortDesc = store.get('tichu.sortDesc') === '1';
   let wasMyTurn = false;
   let modalKey = null;
   let showHistory = false;
@@ -120,6 +121,11 @@
   const team = seat => seat % 2;
 
   function sortedHand(hand) {
+    const list = sortHand(hand);
+    return sortDesc ? list.slice().reverse() : list;
+  }
+
+  function sortHand(hand) {
     if (!sortBySuit) return hand;
     const order = { jade: 1, sword: 2, pagoda: 3, star: 4 };
     return hand.slice().sort((a, b) => {
@@ -175,6 +181,9 @@
       `<div class="menu-row"><span>Sortierung</span><div class="seg">` +
       `<button class="small ${!sortBySuit ? 'on' : ''}" data-act="sortVal">Wert</button>` +
       `<button class="small ${sortBySuit ? 'on' : ''}" data-act="sortSuit">Farbe</button></div></div>` +
+      `<div class="menu-row"><span>Reihenfolge</span><div class="seg">` +
+      `<button class="small ${!sortDesc ? 'on' : ''}" data-act="sortAsc">↑ aufsteigend</button>` +
+      `<button class="small ${sortDesc ? 'on' : ''}" data-act="sortDesc">↓ absteigend</button></div></div>` +
       `<div class="menu-row"><span>Handkarten</span><div class="seg">` +
       `<button class="small ${!bigHand ? 'on' : ''}" data-act="handSmall">Normal</button>` +
       `<button class="small ${bigHand ? 'on' : ''}" data-act="handBig">Groß</button></div></div>` +
@@ -561,6 +570,11 @@
       case 'sortVal': case 'sortSuit':
         sortBySuit = act === 'sortSuit';
         store.set('tichu.sortSuit', sortBySuit ? '1' : '0');
+        render();
+        break;
+      case 'sortAsc': case 'sortDesc':
+        sortDesc = act === 'sortDesc';
+        store.set('tichu.sortDesc', sortDesc ? '1' : '0');
         render();
         break;
       case 'handSmall': case 'handBig':
