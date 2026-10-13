@@ -48,7 +48,9 @@
         $('#game').classList.remove('hidden');
         $('#room-code').textContent = room;
       } else if (msg.t === 'state') {
+        const prev = S && S.game;
         S = msg.state;
+        playSounds(prev, S.game);
         const newEnd = S.timer ? Date.now() + S.timer.ms : null;
         if (!newEnd || !timerEnd || Math.abs(newEnd - timerEnd) > 1500) warned = false;
         timerEnd = newEnd;
@@ -98,14 +100,21 @@
     toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
   }
 
-  function beep() {
-    try {
-      const ctx = beep.ctx || (beep.ctx = new (window.AudioContext || window.webkitAudioContext)());
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.frequency.value = 660; g.gain.value = 0.06;
-      o.connect(g); g.connect(ctx.destination);
-      o.start(); o.stop(ctx.currentTime + 0.12);
-    } catch (e) { /* egal */ }
+  // Klänge passend zu Spielereignissen
+  function playSounds(p, g) {
+    if (!p || !g || p.round !== g.round) return;
+    const total = x => x.counts.reduce((a, b) => a + b, 0);
+    if (g.tichu.some((t, s) => t && !p.tichu[s])) Sfx.play('tichu');
+    if (total(g) < total(p) && g.phase !== 'exchange') {
+      const top = g.trick && g.trick.top;
+      if (top && (top.type === 'bomb4' || top.type === 'bombSF')) Sfx.play('bomb');
+      else if (top && top.type === 'single' && top.rank === 15) Sfx.play('dragon');
+      else Sfx.play('play');
+    }
+    const passes = x => (x.trick && x.trick.passed ? x.trick.passed.filter(Boolean).length : 0);
+    if (g.trick && p.trick && g.trick.plays.length === p.trick.plays.length && passes(g) > passes(p)) Sfx.play('pass');
+    if (p.trick && !g.trick && g.phase === 'play' && total(g) === total(p)) Sfx.play('collect');
+    if ((g.phase === 'roundEnd' || g.phase === 'gameOver') && p.phase !== g.phase) Sfx.play('roundEnd');
   }
 
   const SUIT_SYM = { jade: '◆', sword: '⚔', pagoda: '▲', star: '★' };
@@ -156,7 +165,7 @@
     renderModal();
 
     const myTurn = g && g.phase === 'play' && g.turn === me() && me() !== null;
-    if (myTurn && !wasMyTurn) { beep(); }
+    if (myTurn && !wasMyTurn) Sfx.play('turn');
     wasMyTurn = myTurn;
     document.title = myTurn ? '● Du bist dran – Tichu' : 'Tichu Online';
   }
@@ -187,7 +196,10 @@
       `<div class="menu-row"><span>Handkarten</span><div class="seg">` +
       `<button class="small ${!bigHand ? 'on' : ''}" data-act="handSmall">Normal</button>` +
       `<button class="small ${bigHand ? 'on' : ''}" data-act="handBig">Groß</button></div></div>` +
-      `<div class="menu-note">„Groß“: Karussell mit großen Karten zum Durchwischen.</div>`;
+      `<div class="menu-note">„Groß“: Karussell mit großen Karten zum Durchwischen.</div>` +
+      `<div class="menu-row"><span>Töne</span><div class="seg">` +
+      `<button class="small ${!Sfx.muted ? 'on' : ''}" data-act="soundOn">an</button>` +
+      `<button class="small ${Sfx.muted ? 'on' : ''}" data-act="soundOff">aus</button></div></div>`;
   }
 
   // Kleiner Kartenfächer mit der Anzahl der Handkarten
@@ -582,6 +594,11 @@
         store.set('tichu.bigHand', bigHand ? '1' : '0');
         render();
         break;
+      case 'soundOn': case 'soundOff':
+        Sfx.setMuted(act === 'soundOff');
+        if (act === 'soundOn') Sfx.play('turn');
+        render();
+        break;
       case 'pause': send({ t: 'pause' }); break;
       case 'resume': send({ t: 'resume' }); break;
       case 'closeHistory': showHistory = false; render(); break;
@@ -676,7 +693,7 @@
     const mine = g && me() !== null && ((g.phase === 'play' && g.turn === me() && !g.closing) ||
       (g.phase === 'dragon' && g.dragonWinner === me()) ||
       (g.phase === 'exchange' && !g.myExchange) || (g.phase === 'grand' && !g.grandDecided[me()]));
-    if (mine && left !== null && left <= 10 && !warned) { warned = true; beep(); toast('Noch 10 Sekunden!'); }
+    if (mine && left !== null && left <= 10 && !warned) { warned = true; Sfx.play('warn'); toast('Noch 10 Sekunden!'); }
   }, 250);
 
   // Rechtsklick/Doppelklick auf Hand = Auswahl leeren

@@ -49,6 +49,8 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
   „Groß“ macht die Hand zum Karussell mit großen Karten: wischen (Finger, Maus ziehen oder Mausrad).
   Ausgewählte Karten wandern in eine Auswahl-Reihe darüber und bleiben so immer sichtbar;
   eine Mini-Übersicht zeigt alle Handkarten – antippen springt zur Karte.
+- **Töne:** selbst erzeugte Klänge (Ausspielen, Passen, Bombe, Drache, Tichu, Stich, Rundenende, „Du bist dran“),
+  im ⚙-Menü abschaltbar.
 - **Pause (⏸ oben rechts):** hält das Spiel an – Bots und Zeitlimit warten, bis jemand „Weiter“ drückt.
 - Verbindungsabbruch? Einfach die Seite neu laden – man landet wieder auf seinem Platz
   (auch von einem anderen Gerät mit demselben Namen).
@@ -67,6 +69,7 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 ## Entwicklung
 
 - `public/tichu-core.js` – Kombinationen und Regeln (Server und Browser)
+- `public/sounds.js` – Spielklänge (Web Audio, keine Audiodateien)
 - `public/card-art.js` – Kartendesign: SVG-Motive (Jade, Schwert, Pagode, Stern, Phönix, Drache, Hund, Mah Jong)
 - `game.js` – Spielablauf, `bot.js` – einfacher Computerspieler, `server.js` – HTTP + WebSocket
 - `npm test` – Regeltests + 30 simulierte Bot-Partien; `node test/e2e.js` – Test über den echten Server
