@@ -46,7 +46,26 @@
     src.start(c.currentTime + start);
   }
 
+  // ein „Wuff“: kurzer, rauer Ton mit schnellem Tonhöhenabfall plus Rauschen
+  function woof(start) {
+    const c = ac();
+    const t = c.currentTime + start;
+    const osc = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(520, t);
+    osc.frequency.exponentialRampToValueAtTime(900, t + 0.03);
+    osc.frequency.exponentialRampToValueAtTime(260, t + 0.16);
+    f.type = 'bandpass'; f.frequency.value = 1100; f.Q.value = 1.2;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.35, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    osc.connect(f); f.connect(g); g.connect(c.destination);
+    osc.start(t); osc.stop(t + 0.22);
+    noise(start, 0.12, { freq: 1500, q: 1.5, vol: 0.25, decay: 3 });
+  }
+
   const SOUNDS = {
+    dog() { woof(0); woof(0.22); },
     play() { noise(0, 0.09, { freq: 3200, vol: 0.35 }); noise(0.02, 0.06, { freq: 1200, vol: 0.2 }); },
     pass() { tone(320, 0, 0.12, { type: 'triangle', vol: 0.08 }); },
     turn() { tone(660, 0, 0.15, { vol: 0.12 }); tone(880, 0.12, 0.22, { vol: 0.12 }); },

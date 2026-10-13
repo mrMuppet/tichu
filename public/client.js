@@ -107,7 +107,9 @@
     if (g.tichu.some((t, s) => t && !p.tichu[s])) Sfx.play('tichu');
     if (total(g) < total(p) && g.phase !== 'exchange') {
       const top = g.trick && g.trick.top;
-      if (top && (top.type === 'bomb4' || top.type === 'bombSF')) Sfx.play('bomb');
+      const last = !g.trick && g.lastTrick && g.lastTrick.plays[g.lastTrick.plays.length - 1];
+      if (last && last.cards.some(c => c.special === 'dog')) Sfx.play('dog');
+      else if (top && (top.type === 'bomb4' || top.type === 'bombSF')) Sfx.play('bomb');
       else if (top && top.type === 'single' && top.rank === 15) Sfx.play('dragon');
       else Sfx.play('play');
     }
