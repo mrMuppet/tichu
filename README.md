@@ -49,8 +49,8 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
   „Groß“ macht die Hand zum Karussell mit großen Karten: wischen (Finger, Maus ziehen oder Mausrad).
   Ausgewählte Karten wandern in eine Auswahl-Reihe darüber und bleiben so immer sichtbar;
   eine Mini-Übersicht zeigt alle Handkarten – antippen springt zur Karte.
-- **Töne:** selbst erzeugte Klänge (Ausspielen, Passen, Bombe, Drache, Hund bellt, Tichu, Stich, Rundenende, „Du bist dran“),
-  im ⚙-Menü abschaltbar.
+- **Töne:** Klänge für Ausspielen, Passen, Bombe, Drache, Hund (echtes Bellen), Tichu, Stich, Rundenende und
+  „Du bist dran“ – im ⚙-Menü abschaltbar. Dort lässt sich auch das Kartendesign wählen: „Modern“ oder „Klassisch“.
 - **Pause (⏸ oben rechts):** hält das Spiel an – Bots und Zeitlimit warten, bis jemand „Weiter“ drückt.
 - Verbindungsabbruch? Einfach die Seite neu laden – man landet wieder auf seinem Platz
   (auch von einem anderen Gerät mit demselben Namen).
@@ -73,3 +73,7 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 - `public/card-art.js` – Kartendesign: SVG-Motive (Jade, Schwert, Pagode, Stern, Phönix, Drache, Hund, Mah Jong)
 - `game.js` – Spielablauf, `bot.js` – einfacher Computerspieler, `server.js` – HTTP + WebSocket
 - `npm test` – Regeltests + 30 simulierte Bot-Partien; `node test/e2e.js` – Test über den echten Server
+
+## Quellen
+
+- Hundebellen: „dog bark 9“ von alexzavesa, freesound.org (Sound #853723) – Lizenz siehe Freesound-Seite.

@@ -199,6 +199,9 @@
       `<button class="small ${!bigHand ? 'on' : ''}" data-act="handSmall">Normal</button>` +
       `<button class="small ${bigHand ? 'on' : ''}" data-act="handBig">Groß</button></div></div>` +
       `<div class="menu-note">„Groß“: Karussell mit großen Karten zum Durchwischen.</div>` +
+      `<div class="menu-row"><span>Kartendesign</span><div class="seg">` +
+      `<button class="small ${CardArt.style === 'modern' ? 'on' : ''}" data-act="styleModern">Modern</button>` +
+      `<button class="small ${CardArt.style === 'classic' ? 'on' : ''}" data-act="styleClassic">Klassisch</button></div></div>` +
       `<div class="menu-row"><span>Töne</span><div class="seg">` +
       `<button class="small ${!Sfx.muted ? 'on' : ''}" data-act="soundOn">an</button>` +
       `<button class="small ${Sfx.muted ? 'on' : ''}" data-act="soundOff">aus</button></div></div>`;
@@ -594,6 +597,11 @@
       case 'handSmall': case 'handBig':
         bigHand = act === 'handBig';
         store.set('tichu.bigHand', bigHand ? '1' : '0');
+        render();
+        break;
+      case 'styleModern': case 'styleClassic':
+        CardArt.setStyle(act === 'styleClassic' ? 'classic' : 'modern');
+        modalKey = null;
         render();
         break;
       case 'soundOn': case 'soundOff':

@@ -265,6 +265,31 @@ input, select {
 .card.sp-dragon .big, .card.sp-phoenix .big, .card.sp-dog .big { width: 74%; height: 74%; }
 .card.sp-mahjong .big { width: 70%; height: 70%; top: 50%; }
 
+/* Klassisches Kartendesign (helle Karten) */
+.card.classic {
+  background: linear-gradient(160deg, #fffdf6, #efe8d6);
+  color: #222;
+  border: 1px solid #c8bfa6;
+  border-radius: 7px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .4);
+}
+.card.classic .r { position: absolute; top: 3px; left: 6px; font-weight: 800; font-size: calc(var(--cw) * .32); line-height: 1; }
+.card.classic .r2 { position: absolute; bottom: 3px; right: 6px; font-weight: 800; font-size: calc(var(--cw) * .32); line-height: 1; transform: rotate(180deg); }
+.card.classic .sym { position: absolute; left: 50%; top: 54%; transform: translate(-50%, -50%); font-size: calc(var(--cw) * .5); }
+.card.classic .sname { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font-size: calc(var(--cw) * .16); font-weight: 600; }
+.card.classic.s-jade { color: #11804a; }
+.card.classic.s-sword { color: #222; }
+.card.classic.s-pagoda { color: #1d4fb8; }
+.card.classic.s-star { color: #c62828; }
+.card.classic.sp-dragon { background: linear-gradient(160deg, #ffe7d6, #f6b89a); color: #a01515; }
+.card.classic.sp-phoenix { background: linear-gradient(160deg, #fff4d0, #f7d27a); color: #b35c00; }
+.card.classic.sp-dog { background: linear-gradient(160deg, #f1f1f1, #cfcfcf); color: #333; }
+.card.classic.sp-mahjong { background: linear-gradient(160deg, #e8f6ff, #b5dcf5); color: #0d4d7a; }
+body.cards-classic .back {
+  background: repeating-linear-gradient(45deg, #8b1d1d, #8b1d1d 3px, #a52a2a 3px, #a52a2a 6px);
+  border: 1px solid #f2d7a0;
+}
+
 /* Farben der Mini-Übersicht */
 .chip.s-jade { color: #1d6b51; }
 .chip.s-sword { color: #29292b; }

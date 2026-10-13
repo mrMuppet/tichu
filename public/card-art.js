@@ -151,5 +151,39 @@
       idx + use(big, 'big') + idx.replace('class="idx"', 'class="idx idx2"') + `</div>`;
   }
 
-  window.CardArt = { installSprite, cardHTML };
+  // Klassisches Design: helle Karten mit Unicode-Symbolen und Emojis
+  const CLASSIC_SUIT = { jade: '◆', sword: '⚔', pagoda: '▲', star: '★' };
+  const CLASSIC_SPECIAL = {
+    mahjong: { sym: '🐦', r: '1', name: 'Mah Jong' },
+    dog: { sym: '🐕', r: '', name: 'Hund' },
+    phoenix: { sym: '🔥', r: '', name: 'Phönix' },
+    dragon: { sym: '🐉', r: '', name: 'Drache' },
+  };
+  function classicCardHTML(c, extra) {
+    extra = extra || '';
+    if (c.special) {
+      const sp = CLASSIC_SPECIAL[c.special];
+      return `<div class="card classic sp-${c.special} ${extra}" data-id="${c.id}" title="${sp.name}">` +
+        (sp.r ? `<span class="r">${sp.r}</span>` : '') +
+        `<span class="sym">${sp.sym}</span><span class="sname">${sp.name}</span></div>`;
+    }
+    const r = RANK[c.rank] || String(c.rank);
+    return `<div class="card classic s-${c.suit} ${extra}" data-id="${c.id}"><span class="r">${r}</span>` +
+      `<span class="sym">${CLASSIC_SUIT[c.suit]}</span><span class="r2">${r}</span></div>`;
+  }
+
+  let style = 'modern';
+  try { style = localStorage.getItem('tichu.cardStyle') || 'modern'; } catch (e) { /* egal */ }
+  function setStyle(s) {
+    style = s === 'classic' ? 'classic' : 'modern';
+    try { localStorage.setItem('tichu.cardStyle', style); } catch (e) { /* egal */ }
+    document.body.classList.toggle('cards-classic', style === 'classic');
+  }
+
+  window.CardArt = {
+    installSprite() { installSprite(); setStyle(style); },
+    cardHTML: (c, extra) => (style === 'classic' ? classicCardHTML(c, extra) : cardHTML(c, extra)),
+    get style() { return style; },
+    setStyle,
+  };
 })();

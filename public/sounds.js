@@ -64,8 +64,27 @@
     noise(start, 0.12, { freq: 1500, q: 1.5, vol: 0.25, decay: 3 });
   }
 
+  // Audiodateien (werden beim ersten Klang geladen und dekodiert)
+  const SAMPLES = { dog: 'sounds/dog-bark.wav' };
+  const buffers = {};
+  function loadSamples() {
+    if (loadSamples.done) return;
+    loadSamples.done = true;
+    for (const [name, url] of Object.entries(SAMPLES)) {
+      fetch(url).then(r => r.arrayBuffer()).then(b => ac().decodeAudioData(b))
+        .then(buf => { buffers[name] = buf; }).catch(() => { /* Ersatzklang bleibt */ });
+    }
+  }
+  function sample(name, vol) {
+    const c = ac(), src = c.createBufferSource(), g = c.createGain();
+    src.buffer = buffers[name];
+    g.gain.value = vol;
+    src.connect(g); g.connect(c.destination);
+    src.start();
+  }
+
   const SOUNDS = {
-    dog() { woof(0); woof(0.22); },
+    dog() { if (buffers.dog) sample('dog', 0.8); else { woof(0); woof(0.22); } },
     play() { noise(0, 0.09, { freq: 3200, vol: 0.35 }); noise(0.02, 0.06, { freq: 1200, vol: 0.2 }); },
     pass() { tone(320, 0, 0.12, { type: 'triangle', vol: 0.08 }); },
     turn() { tone(660, 0, 0.15, { vol: 0.12 }); tone(880, 0.12, 0.22, { vol: 0.12 }); },
@@ -80,9 +99,13 @@
     warn() { tone(990, 0, 0.08, { type: 'square', vol: 0.05 }); tone(990, 0.15, 0.08, { type: 'square', vol: 0.05 }); },
   };
 
+  // Browser erlauben Audio erst nach einer Nutzeraktion: dann vorladen
+  document.addEventListener('pointerdown', () => { if (!muted) loadSamples(); }, { once: true });
+
   window.Sfx = {
     play(name) {
       if (muted || !SOUNDS[name]) return;
+      loadSamples();
       try { SOUNDS[name](); } catch (e) { /* Audio nicht verfügbar */ }
     },
     get muted() { return muted; },
