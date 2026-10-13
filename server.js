@@ -45,6 +45,8 @@ class Room {
     this.code = code;
     this.settings = cleanSettings(settings);
     this.timer = null;      // Zeitlimit: { key, deadline, handle }
+    this.paused = null;     // { by: Name } während einer Pause
+    this.pausedTimer = null; // angehaltene Zeitlimit-Uhr { key, remaining }
     this.seats = [null, null, null, null]; // { token, name, bot }
     this.clients = new Map();             // token -> { name, ws, seat }
     this.game = null;
@@ -150,6 +152,20 @@ class Room {
         if (this.isBot(s)) this.seats[s] = null;
         break;
       }
+      case 'pause': {
+        if (!g || seat === null || this.paused || !['grand', 'exchange', 'play', 'dragon'].includes(g.phase)) break;
+        this.paused = { by: client.name };
+        g.pause();
+        g.log(`⏸ ${client.name} hat das Spiel pausiert.`);
+        break;
+      }
+      case 'resume': {
+        if (!g || seat === null || !this.paused) break;
+        this.paused = null;
+        g.resume();
+        g.log(`▶ ${client.name} setzt das Spiel fort.`);
+        break;
+      }
       case 'settings': {
         if (this.inGame() || seat === null) break;
         this.settings = cleanSettings(msg.settings, this.settings);
@@ -160,6 +176,8 @@ class Room {
         if (this.inGame()) break;
         if (this.seats.some(x => !x)) { err = 'Es müssen alle 4 Plätze besetzt sein.'; break; }
         if (this.game) this.game.destroy();
+        this.paused = null;
+        this.pausedTimer = null;
         this.game = new Game(s => this.seatName(s), () => this.broadcast(), this.settings);
         this.game.startRound();
         break;
@@ -168,10 +186,12 @@ class Room {
         if (!g || g.phase !== 'gameOver') break;
         g.destroy();
         this.game = null;
+        this.paused = null;
         break;
       }
       default: {
         if (!g || seat === null) { err = 'Du spielst nicht mit.'; break; }
+        if (this.paused) { err = 'Das Spiel ist pausiert.'; break; }
         err = this.gameAction(seat, msg);
       }
     }
@@ -200,7 +220,7 @@ class Room {
   scheduleBots() {
     clearTimeout(this.botTimer);
     const g = this.game;
-    if (!g || !this.seats.some(s => s && s.bot)) return;
+    if (!g || this.paused || !this.seats.some(s => s && s.bot)) return;
     for (let s = 0; s < 4; s++) {
       if (!this.isBot(s)) continue;
       const action = bot.decide(g, s);
@@ -239,17 +259,29 @@ class Room {
         key = `p${g.round}:${g.turn}:${g.moves}`; ms = TURN_MS;
       } else if (g.phase === 'dragon' && !this.isBot(g.dragonPending.winner)) { key = 'd' + g.round + ':' + g.moves; ms = TURN_MS; }
     }
+    if (this.paused) {
+      // Uhr anhalten und Restzeit merken
+      if (this.timer) {
+        clearTimeout(this.timer.handle);
+        this.pausedTimer = { key: this.timer.key, remaining: Math.max(1000, this.timer.deadline - Date.now()), total: this.timer.total };
+        this.timer = null;
+      }
+      return;
+    }
     if (this.timer && this.timer.key === key) return;
     if (this.timer) clearTimeout(this.timer.handle);
     this.timer = null;
     if (!key) return;
+    let total = ms;
+    if (this.pausedTimer && this.pausedTimer.key === key) { ms = this.pausedTimer.remaining; total = this.pausedTimer.total; }
+    this.pausedTimer = null;
     const handle = setTimeout(() => this.onTimeout(key), ms);
-    this.timer = { key, deadline: Date.now() + ms, total: ms, handle };
+    this.timer = { key, deadline: Date.now() + ms, total, handle };
   }
 
   onTimeout(key) {
     const g = this.game;
-    if (!this.timer || this.timer.key !== key || !g) return;
+    if (!this.timer || this.timer.key !== key || !g || this.paused) return;
     this.timer = null;
     for (let s = 0; s < 4; s++) {
       if (this.isBot(s)) continue;
@@ -290,7 +322,7 @@ class Room {
     const spectators = [...this.clients.values()].filter(c => c.seat === null && c.ws).map(c => c.name);
     const timer = this.timer ? { ms: Math.max(0, this.timer.deadline - Date.now()), total: this.timer.total } : null;
     return {
-      room: this.code, you: seat, seats, settings: this.settings, timer, spectators, chat: this.chat.slice(-50),
+      room: this.code, you: seat, seats, settings: this.settings, timer, paused: this.paused, spectators, chat: this.chat.slice(-50),
       game: this.game ? this.game.view(seat) : null,
     };
   }

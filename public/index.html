@@ -53,6 +53,11 @@
       </div>
       <div id="scoreboard"></div>
       <div class="top-actions">
+        <button id="pause-btn" class="small hidden" data-act="pause" title="Spiel pausieren">⏸</button>
+        <div class="menu-wrap">
+          <button id="menu-btn" class="small" title="Ansicht">⚙</button>
+          <div id="menu" class="hidden"></div>
+        </div>
         <button id="history-btn" class="small" title="Punkteverlauf">📊</button>
         <button id="side-toggle" class="small" title="Chat & Protokoll">💬</button>
       </div>
@@ -72,6 +77,7 @@
     <footer id="me">
       <div class="seat pos-bottom" id="seat-bottom"></div>
       <div id="actions"></div>
+      <div id="hand-picked" class="hidden"></div>
       <div id="hand-mini" class="hidden"></div>
       <div id="hand"></div>
     </footer>

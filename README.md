@@ -43,8 +43,11 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
   oberste Karte gespielt hat, „✋ gepasst“ wer im Stich schon gepasst hat.
 - **Schupfen:** Reihenfolge frei wählbar – erst Spieler-Feld, dann Karte antippen oder umgekehrt.
   Antippen einer Karte im Feld legt sie zurück.
-- **Große Karten (🔍 Groß):** Die Hand wird zum Karussell mit großen Karten, durch das man wischen kann
-  (am PC mit dem Mausrad). Darüber zeigt eine Mini-Übersicht alle Handkarten – antippen springt zur Karte.
+- **Ansicht (⚙ oben rechts):** Sortierung nach Wert oder Farbe, Handkarten „Normal“ oder „Groß“.
+  „Groß“ macht die Hand zum Karussell mit großen Karten: wischen (Finger, Maus ziehen oder Mausrad).
+  Ausgewählte Karten wandern in eine Auswahl-Reihe darüber und bleiben so immer sichtbar;
+  eine Mini-Übersicht zeigt alle Handkarten – antippen springt zur Karte.
+- **Pause (⏸ oben rechts):** hält das Spiel an – Bots und Zeitlimit warten, bis jemand „Weiter“ drückt.
 - Verbindungsabbruch? Einfach die Seite neu laden – man landet wieder auf seinem Platz
   (auch von einem anderen Gerät mit demselben Namen).
 

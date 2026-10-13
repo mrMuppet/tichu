@@ -216,13 +216,31 @@ class Game {
 
   startClosing() {
     this.turn = null;
-    const timer = setTimeout(() => {
+    this.closing = { winner: this.trick.lastSeat };
+    this.armClosing(TRICK_CLOSE_MS);
+  }
+
+  armClosing(ms) {
+    this.closing.until = Date.now() + ms;
+    this.closing.timer = setTimeout(() => {
       if (!this.closing) return;
       this.closing = null;
       this.finishTrick();
       this.onChange();
-    }, TRICK_CLOSE_MS);
-    this.closing = { winner: this.trick.lastSeat, until: Date.now() + TRICK_CLOSE_MS, timer };
+    }, ms);
+  }
+
+  // Pause: laufende Stich-Abschluss-Uhr anhalten bzw. fortsetzen
+  pause() {
+    if (this.closing && this.closing.timer) {
+      clearTimeout(this.closing.timer);
+      this.closing.timer = null;
+      this.closing.remaining = Math.max(0, this.closing.until - Date.now());
+    }
+  }
+
+  resume() {
+    if (this.closing && !this.closing.timer) this.armClosing(this.closing.remaining || TRICK_CLOSE_MS);
   }
 
   isDragonTrick() {
@@ -366,7 +384,7 @@ class Game {
       ready: this.ready, result: this.result, winner: this.winner,
       trick: this.trick ? { plays: this.trick.plays.map(p => ({ seat: p.seat, cards: p.cards, desc: T.describe(p.combo) })), lastSeat: this.trick.lastSeat, top: this.trick.top, passed: this.trick.passed } : null,
       lastTrick: this.lastTrick ? { plays: this.lastTrick.plays.map(p => ({ seat: p.seat, cards: p.cards })) } : null,
-      closing: this.closing ? { winner: this.closing.winner, ms: Math.max(0, this.closing.until - Date.now()) } : null,
+      closing: this.closing ? { winner: this.closing.winner, ms: this.closing.timer ? Math.max(0, this.closing.until - Date.now()) : (this.closing.remaining || 0) } : null,
       dragonWinner: this.dragonPending ? this.dragonPending.winner : null,
       trickPoints: this.tricks ? this.tricks.map(t => T.sumPoints(t)) : [0, 0, 0, 0],
     };

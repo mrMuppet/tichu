@@ -156,6 +156,7 @@
     for (const k in exSlots) if (exSlots[k] && !handIds.has(exSlots[k])) exSlots[k] = null;
 
     renderScore();
+    renderTopbar();
     renderSeats();
     renderCenter();
     renderActions();
@@ -179,6 +180,20 @@
     ).join('<span>:</span>');
     const st = S.settings || {};
     $('#settings-info').textContent = `bis ${st.target || 1000}` + (st.timeLimit ? ' · ⏱ 30 s' : '');
+  }
+
+  function renderTopbar() {
+    const g = S.game;
+    const active = g && ['grand', 'exchange', 'play', 'dragon'].includes(g.phase);
+    $('#pause-btn').classList.toggle('hidden', !(active && me() !== null && !S.paused));
+    $('#menu').innerHTML =
+      `<div class="menu-row"><span>Sortierung</span><div class="seg">` +
+      `<button class="small ${!sortBySuit ? 'on' : ''}" data-act="sortVal">Wert</button>` +
+      `<button class="small ${sortBySuit ? 'on' : ''}" data-act="sortSuit">Farbe</button></div></div>` +
+      `<div class="menu-row"><span>Handkarten</span><div class="seg">` +
+      `<button class="small ${!bigHand ? 'on' : ''}" data-act="handSmall">Normal</button>` +
+      `<button class="small ${bigHand ? 'on' : ''}" data-act="handBig">Groß</button></div></div>` +
+      `<div class="menu-note">„Groß“: Karussell mit großen Karten zum Durchwischen.</div>`;
   }
 
   // Wer muss gerade handeln?
@@ -314,8 +329,7 @@
     const el = $('#actions');
     if (!g || me() === null || !g.hand) { el.innerHTML = me() === null && g ? '<span class="hint">Du schaust zu.</span>' : ''; return; }
     const tichuBtn = g.canTichu ? '<button class="danger" data-act="tichu">Tichu!</button>' : '';
-    const handBtn = `<button class="small" data-act="bigHand" title="Große Karten zum Durchwischen">${bigHand ? '🔍 Klein' : '🔍 Groß'}</button>`;
-    const sortBtn = `<button class="small" data-act="sort" title="Sortierung">${sortBySuit ? '↕ Farbe' : '↕ Wert'}</button>` + handBtn;
+    const handBtn = '', sortBtn = '';
 
     if (g.phase === 'grand') {
       el.innerHTML = g.grandDecided[me()]
@@ -394,7 +408,14 @@
     el.classList.toggle('big', bigHand);
     const scroll = el.scrollLeft;
     const isSel = id => (g.phase === 'exchange' ? exPick === id : selected.has(id));
-    el.innerHTML = sortedHand(g.hand).filter(c => !inSlots.has(c.id))
+    // Große Ansicht: ausgewählte Karten liegen in einer eigenen Reihe über dem Karussell
+    const picked = bigHand ? sortedHand(g.hand).filter(c => !inSlots.has(c.id) && isSel(c.id)) : [];
+    const tray = $('#hand-picked');
+    tray.classList.toggle('hidden', !bigHand || !picked.length);
+    tray.innerHTML = picked.length
+      ? `<span class="tray-label">Ausgewählt:</span><div class="cards">${picked.map(c => cardHTML(c)).join('')}</div><span class="tray-label">antippen = zurück</span>`
+      : '';
+    el.innerHTML = sortedHand(g.hand).filter(c => !inSlots.has(c.id) && !(bigHand && isSel(c.id)))
       .map(c => cardHTML(c, (isSel(c.id) ? 'sel ' : '') + (receivedIds.has(c.id) ? 'new' : ''))).join('');
     el.scrollLeft = scroll;
     const mini = $('#hand-mini');
@@ -415,7 +436,7 @@
   function jumpTo(id) {
     const hand = $('#hand');
     const card = hand.querySelector(`.card[data-id="${id}"]`);
-    if (!card) return;
+    if (!card) { onHandClick(id); return; } // ausgewählt -> zurücklegen
     hand.scrollTo({ left: card.offsetLeft - hand.clientWidth / 2 + card.offsetWidth / 2, behavior: 'smooth' });
   }
 
@@ -457,7 +478,11 @@
   function renderModal() {
     const g = S.game;
     let key = null, html = '';
-    if (g && g.phase === 'dragon' && g.dragonWinner === me()) {
+    if (g && S.paused) {
+      key = 'paused';
+      html = `<h2>⏸ Spiel pausiert</h2><p style="text-align:center">Pausiert von <b>${esc(S.paused.by)}</b>.</p>` +
+        (me() !== null ? '<div class="btn-row"><button class="primary" data-act="resume">▶ Weiter spielen</button></div>' : '');
+    } else if (g && g.phase === 'dragon' && g.dragonWinner === me()) {
       key = 'dragon';
       const a = (me() + 1) % 4, b = (me() + 3) % 4;
       html = `<h2>🐉 Drachen-Stich verschenken</h2><p style="text-align:center">An welchen Gegner geht der Stich?</p>` +
@@ -536,17 +561,19 @@
       case 'dragon': send({ t: 'dragon', to: Number(el.dataset.seat) }); break;
       case 'ready': send({ t: 'ready' }); break;
       case 'newGame': send({ t: 'newGame' }); break;
-      case 'sort':
-        sortBySuit = !sortBySuit;
+      case 'sortVal': case 'sortSuit':
+        sortBySuit = act === 'sortSuit';
         store.set('tichu.sortSuit', sortBySuit ? '1' : '0');
         render();
         break;
-      case 'closeHistory': showHistory = false; render(); break;
-      case 'bigHand':
-        bigHand = !bigHand;
+      case 'handSmall': case 'handBig':
+        bigHand = act === 'handBig';
         store.set('tichu.bigHand', bigHand ? '1' : '0');
         render();
         break;
+      case 'pause': send({ t: 'pause' }); break;
+      case 'resume': send({ t: 'resume' }); break;
+      case 'closeHistory': showHistory = false; render(); break;
       case 'setting': {
         const k = el.dataset.key, v = Number(el.dataset.val);
         send({ t: 'settings', settings: k === 'timeLimit' ? { timeLimit: !!v } : { [k]: v } });
@@ -563,7 +590,7 @@
   }
 
   document.addEventListener('click', ev => {
-    const card = ev.target.closest('#hand .card');
+    const card = ev.target.closest('#hand .card, #hand-picked .card');
     if (card) return onHandClick(card.dataset.id);
     const chip = ev.target.closest('#hand-mini .chip');
     if (chip) { jumpTo(chip.dataset.jump); return; }
@@ -578,6 +605,48 @@
   });
 
   $('#hand').addEventListener('scroll', () => requestAnimationFrame(carousel), { passive: true });
+  (function dragScroll() {
+    const hand = $('#hand');
+    let drag = null, suppressClick = false, raf = null;
+    hand.addEventListener('pointerdown', ev => {
+      if (!bigHand || ev.pointerType === 'touch' || ev.button !== 0) return;
+      cancelAnimationFrame(raf);
+      drag = { x: ev.clientX, left: hand.scrollLeft, lastX: ev.clientX, lastT: performance.now(), v: 0, moved: false };
+    });
+    window.addEventListener('pointermove', ev => {
+      if (!drag) return;
+      const dx = ev.clientX - drag.x;
+      if (Math.abs(dx) > 6) drag.moved = true;
+      if (!drag.moved) return;
+      hand.classList.add('dragging');
+      hand.scrollLeft = drag.left - dx;
+      const now = performance.now();
+      drag.v = (ev.clientX - drag.lastX) / Math.max(1, now - drag.lastT);
+      drag.lastX = ev.clientX; drag.lastT = now;
+    });
+    window.addEventListener('pointerup', () => {
+      if (!drag) return;
+      const d = drag;
+      drag = null;
+      hand.classList.remove('dragging');
+      if (!d.moved) return;
+      suppressClick = true;
+      setTimeout(() => { suppressClick = false; }, 50);
+      // Schwung auslaufen lassen
+      let v = d.v * 16;
+      const step = () => {
+        if (Math.abs(v) < 0.5) return;
+        hand.scrollLeft -= v;
+        v *= 0.92;
+        raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    });
+    hand.addEventListener('click', ev => {
+      if (suppressClick) { ev.stopPropagation(); ev.preventDefault(); }
+    }, true);
+  })();
+
   $('#hand').addEventListener('wheel', ev => {
     if (!bigHand || Math.abs(ev.deltaY) <= Math.abs(ev.deltaX)) return;
     ev.preventDefault();
@@ -621,6 +690,10 @@
   });
   $('#copy-link').onclick = copyLink;
   $('#side-toggle').onclick = () => $('#side').classList.toggle('open');
+  $('#menu-btn').onclick = ev => { ev.stopPropagation(); $('#menu').classList.toggle('hidden'); };
+  document.addEventListener('click', ev => {
+    if (!ev.target.closest('.menu-wrap')) $('#menu').classList.add('hidden');
+  });
   $('#history-btn').onclick = () => { showHistory = !showHistory; if (S) render(); };
   $('#chat-form').onsubmit = ev => {
     ev.preventDefault();
