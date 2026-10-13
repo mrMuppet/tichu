@@ -196,6 +196,18 @@
       `<div class="menu-note">„Groß“: Karussell mit großen Karten zum Durchwischen.</div>`;
   }
 
+  // Kleiner Kartenfächer mit der Anzahl der Handkarten
+  function fanHTML(n) {
+    if (!n) return '<div class="fan empty"><span class="fan-count">0</span></div>';
+    const step = n > 1 ? Math.min(10, 80 / (n - 1)) : 0;
+    let backs = '';
+    for (let i = 0; i < n; i++) {
+      const a = (i - (n - 1) / 2) * step;
+      backs += `<div class="back" style="transform:translateX(-50%) rotate(${a.toFixed(1)}deg)"></div>`;
+    }
+    return `<div class="fan" title="${n} Karten">${backs}<span class="fan-count">${n}</span></div>`;
+  }
+
   // Wer muss gerade handeln?
   function actingSeat(g) {
     if (g.phase === 'play' && !g.closing) return g.turn;
@@ -228,7 +240,7 @@
       if (g.phase === 'grand') meta.push(g.grandDecided[seat] ? '✓ entschieden' : 'überlegt…');
       else if (g.phase === 'exchange') meta.push(g.exchanged[seat] ? '✓ geschupft' : 'schupft…');
       else if (g.phase === 'roundEnd') meta.push(g.ready[seat] || (info && info.bot) ? '✓ bereit' : 'wartet…');
-      else meta.push(`${count} Karten`);
+      else if (isMe) meta.push(`${count} Karten`);
       meta.push(`Stiche: ${g.trickPoints[seat]} P.`);
       el.classList.toggle('turn', acting === seat);
       el.classList.toggle('passed', passed);
@@ -236,7 +248,7 @@
       el.innerHTML =
         `<div class="name"><span class="team-dot team-${team(seat)}"></span>${esc(nameOf(seat))}${isMe ? ' (du)' : ''}${info && info.bot ? ' 🤖' : ''}</div>` +
         (badges.length ? `<div class="meta">${badges.join('')}</div>` : '') +
-        (!isMe ? `<div class="backs">${'<div class="back"></div>'.repeat(Math.min(count, 14))}</div>` : '') +
+        (!isMe ? fanHTML(count) : '') +
         `<div class="meta">${meta.join(' · ')}</div>`;
     }
     // Pfeil zum Spieler, der am Zug ist

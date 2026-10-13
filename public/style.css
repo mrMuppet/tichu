@@ -141,6 +141,22 @@ input, select {
 .badge.grand { background: var(--red); color: #fff; }
 .badge.place { background: #3b82f6; color: #fff; }
 .badge.off { background: #555; }
+/* Kartenfächer der Mitspieler */
+.fan { position: relative; width: 96px; height: 46px; margin: 2px 0 4px; }
+.fan .back {
+  position: absolute; left: 50%; bottom: 0; margin: 0;
+  width: 24px; height: 36px; transform-origin: 50% 100%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .4);
+}
+.fan .back:first-child { margin-left: 0; }
+.fan-count {
+  position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); z-index: 2;
+  background: #fffdf6; color: #222; font-weight: 800; font-size: 12px;
+  min-width: 20px; padding: 0 5px; border-radius: 9px; text-align: center; line-height: 17px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+}
+.fan.empty { height: 20px; }
+.fan.empty .fan-count { background: #555; color: #ddd; }
 .backs { display: flex; height: 34px; }
 .back {
   width: 22px; height: 32px; margin-left: -12px;
@@ -170,7 +186,7 @@ input, select {
   transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(var(--sc));
   transition: transform .25s ease-out;
 }
-.play.p-top { --dy: -66px; }
+.play.p-top { --dy: -50px; }
 .play.p-bottom { --dy: 66px; }
 .play.p-left { --dx: -30cqw; }
 .play.p-right { --dx: 30cqw; }
@@ -379,7 +395,9 @@ input, select {
   .seat .name { font-size: 12px; text-align: center; flex-wrap: wrap; justify-content: center; }
   .seat .meta { font-size: 10px; }
   .badge { font-size: 9px; padding: 1px 5px; }
-  #table .seat .backs { display: none; }
+  .fan { width: 70px; height: 34px; }
+  .fan .back { width: 17px; height: 26px; }
+  .fan-count { font-size: 11px; line-height: 15px; min-width: 18px; }
   #scoreboard .names { display: none; }
   .room-info button { display: none; }
 }
