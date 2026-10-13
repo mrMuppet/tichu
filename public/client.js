@@ -402,7 +402,7 @@
       el.innerHTML =
         `<button class="primary" data-act="play" ${canPlay ? '' : 'disabled'}>${isBombPlay ? '💣 Bombe!' : 'Spielen'}</button>` +
         `<button data-act="pass" ${canPass ? '' : 'disabled'}>Passen</button>${wishSel}${tichuBtn}${sortBtn}` +
-        (hint ? `<span class="hint ${cls}">${esc(hint)}</span>` : '');
+        `<span class="hint ${cls}">${esc(hint)}</span>`;
       return;
     }
     el.innerHTML = sortBtn;

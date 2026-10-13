@@ -334,6 +334,8 @@ input, select {
 /* ---------- Aktionen ---------- */
 #actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; min-height: 40px; }
 #actions .hint { color: var(--muted); font-size: 14px; }
+/* Erklärungen in eigener, zentrierter Zeile unter den Buttons */
+#actions > span.hint { flex-basis: 100%; text-align: center; min-height: 18px; order: 10; }
 #actions .hint.bad { color: #ffb4a8; }
 #actions .hint.good { color: #c8f7c5; }
 .ex-slots { display: flex; gap: 10px; }
