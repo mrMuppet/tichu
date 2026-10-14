@@ -416,8 +416,6 @@ body.cards-classic .back {
 .play.partner .cards { filter: drop-shadow(0 0 7px rgba(111, 183, 255, .95)) drop-shadow(0 0 2px rgba(111, 183, 255, .9)); }
 .play.partner .desc { background: #1f4f80; color: #fff; font-weight: 600; }
 #actions .hint.warn { color: #ffc46b; font-weight: 600; }
-button.primary.warn { background: #f08a24; border-color: #f08a24; color: #241200; }
-button.primary.warn:hover:not(:disabled) { background: #ffa04a; }
 
 /* große Ansicht: auch die gespielten Karten größer */
 body.big-hand #trick .card { --cw: 80px; --ch: 116px; }

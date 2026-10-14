@@ -36,8 +36,8 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 - **Feste Tasten:** In der Spielphase stehen Tichu | Spielen | Passen | 💣 Bombe immer an derselben Stelle.
 - **Bomben-Taste:** Sobald eine Bombe auf der Hand ist, erscheint „💣 Bombe“ – spielt sie direkt (auch außer der
   Reihe); bei mehreren passenden Bomben wählt man eine aus.
-- **Partner liegt vorne:** Seine Karte ist blau markiert („🤝 Partner“); wer sie stechen würde, bekommt eine orange
-  Taste „⚠ Stechen“ und einen Warnhinweis.
+- **Partner liegt vorne:** Seine Karte ist blau markiert („🤝 Partner“); wer sie stechen würde, bekommt einen
+  Warnhinweis.
 - **Unspielbare Karten** werden ausgegraut, wenn man dran ist (im ⚙-Menü abschaltbar).
 - **Geschupfte Karten** werden nach dem Schupfen 5 Sekunden lang angezeigt (von links / Partner / rechts).
 - **Automatisches Überspringen:** Wer weniger Karten hat, als die liegende Kombination braucht, wird

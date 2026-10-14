@@ -502,7 +502,7 @@
       }
       el.innerHTML =
         `<div class="act-row"><div class="act-slot">${tichuBtn}</div>` +
-        `<button class="primary act-main${beatsPartner ? ' warn' : ''}" data-act="play" ${canPlay ? '' : 'disabled'}>${beatsPartner ? '⚠ Stechen' : isBombPlay ? '💣 Bombe!' : 'Spielen'}</button>` +
+        `<button class="primary act-main" data-act="play" ${canPlay ? '' : 'disabled'}>${isBombPlay ? '💣 Bombe!' : 'Spielen'}</button>` +
         `<button class="act-main" data-act="pass" ${canPass ? '' : 'disabled'}>Passen</button>` +
         `<div class="act-slot">${bombBtn}</div></div>` +
         `<div class="act-sub">${sub}</div>`;
