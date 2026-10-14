@@ -22,6 +22,9 @@
   let wishValue = '';
   let sortBySuit = store.get('tichu.sortSuit') === '1';
   let sortDesc = store.get('tichu.sortDesc') === '1';
+  let grayOut = store.get('tichu.grayOut') !== '0';   // unspielbare Karten ausgrauen
+  let bombChoice = false;                              // Auswahl bei mehreren Bomben offen
+  let receivedTimer = null;
   let wasMyTurn = false;
   let modalKey = null;
   let showHistory = false;
@@ -51,6 +54,7 @@
         const prev = S && S.game;
         S = msg.state;
         playSounds(prev, S.game);
+        if (prev && prev.phase === 'exchange' && S.game && S.game.phase === 'play' && S.game.received) showReceived(S.game.received);
         const newEnd = S.timer ? Date.now() + S.timer.ms : null;
         if (!newEnd || !timerEnd || Math.abs(newEnd - timerEnd) > 1500) warned = false;
         timerEnd = newEnd;
@@ -199,6 +203,9 @@
       `<button class="small ${!bigHand ? 'on' : ''}" data-act="handSmall">Normal</button>` +
       `<button class="small ${bigHand ? 'on' : ''}" data-act="handBig">Groß</button></div></div>` +
       `<div class="menu-note">„Groß“: Karussell mit großen Karten zum Durchwischen.</div>` +
+      `<div class="menu-row"><span>Unspielbare Karten</span><div class="seg">` +
+      `<button class="small ${grayOut ? 'on' : ''}" data-act="grayOn">grau</button>` +
+      `<button class="small ${!grayOut ? 'on' : ''}" data-act="grayOff">normal</button></div></div>` +
       `<div class="menu-row"><span>Kartendesign</span><div class="seg">` +
       `<button class="small ${CardArt.style === 'modern' ? 'on' : ''}" data-act="styleModern">Modern</button>` +
       `<button class="small ${CardArt.style === 'classic' ? 'on' : ''}" data-act="styleClassic">Klassisch</button></div></div>` +
@@ -347,6 +354,65 @@
     return hand.filter(c => selected.has(c.id));
   }
 
+  // Fenster: was die anderen mir geschupft haben (5 Sekunden)
+  function showReceived(rec) {
+    const L = (me() + 3) % 4, P = (me() + 2) % 4, R = (me() + 1) % 4;
+    const item = (seat, label) => rec[seat]
+      ? `<div class="rec-item">${cardHTML(rec[seat])}<span>${label}</span><b>${esc(nameOf(seat))}</b></div>` : '';
+    const el = $('#received');
+    el.innerHTML = `<div class="rec-title">Geschupft bekommen</div><div class="rec-cards">${item(L, 'von links')}${item(P, 'vom Partner')}${item(R, 'von rechts')}</div><div class="rec-bar"><div></div></div>`;
+    el.classList.remove('hidden');
+    requestAnimationFrame(() => requestAnimationFrame(() => { const b = el.querySelector('.rec-bar div'); if (b) b.style.width = '0%'; }));
+    clearTimeout(receivedTimer);
+    receivedTimer = setTimeout(() => el.classList.add('hidden'), 5000);
+  }
+
+  // Karten, die in mindestens einem gültigen Zug vorkommen (null = alle spielbar)
+  let playCache = { key: null, ids: null };
+  function playableIds(g) {
+    const myTurn = g.phase === 'play' && g.turn === me() && !g.closing;
+    if (!myTurn) return null;
+    const top = g.trick ? g.trick.top : null;
+    if (!top && !g.mustFulfill) return null;
+    const key = g.hand.map(c => c.id).join() + '|' + JSON.stringify(top) + '|' + (g.mustFulfill ? g.wish : '');
+    if (playCache.key !== key) {
+      const ids = new Set();
+      for (const p of T.legalPlays(g.hand, top, g.mustFulfill ? g.wish : null)) p.cards.forEach(c => ids.add(c.id));
+      playCache = { key, ids };
+    }
+    return playCache.ids;
+  }
+
+  // Bomben auf der Hand und welche davon gerade spielbar sind
+  let bombAllCache = { key: null, list: [] };
+  function bombInfo(g) {
+    const handKey = g.hand.map(c => c.id).join();
+    if (bombAllCache.key !== handKey) {
+      const seen = new Set(), list = [];
+      for (const p of T.legalPlays(g.hand, null).filter(p => T.isBomb(p.combo))) {
+        const d = T.describe(p.combo);
+        if (!seen.has(d)) { seen.add(d); list.push(p); }
+      }
+      list.sort((a, b) => (T.beats(a.combo, b.combo) ? 1 : -1));
+      bombAllCache = { key: handKey, list };
+    }
+    const all = bombAllCache.list;
+    const top = g.trick ? g.trick.top : null;
+    const myTurn = g.turn === me() && !g.closing;
+    let playable = [];
+    if (g.phase === 'play' && (myTurn || top)) {
+      playable = all.filter(p => T.beats(p.combo, top));
+      if (myTurn && g.mustFulfill) playable = playable.filter(p => T.containsRank(p.cards, g.wish));
+    }
+    return { all, playable };
+  }
+
+  function playBomb(p) {
+    bombChoice = false;
+    selected.clear();
+    send({ t: 'play', ids: p.cards.map(c => c.id), wish: null });
+  }
+
   function renderActions() {
     const g = S.game;
     const el = $('#actions');
@@ -410,10 +476,21 @@
         wishSel = `<label class="hint">Wunsch: <select id="wish-select">${opts.join('')}</select></label>`;
       }
       const canPass = myTurn && !!g.trick && !g.mustFulfill;
+      const bombs = bombInfo(g);
+      if (!bombs.playable.length) bombChoice = false;
+      const bombBtn = bombs.all.length
+        ? `<button class="bomb-btn" data-act="bomb" ${bombs.playable.length ? '' : 'disabled'} title="Bombe spielen">💣 Bombe</button>` : '';
+      let sub = `${wishSel}<span class="hint ${cls}">${esc(hint)}</span>`;
+      if (bombChoice) {
+        sub = bombs.playable.map((b, i) => `<button class="small bomb-btn" data-act="bombPick" data-i="${i}">💣 ${esc(T.describe(b.combo))}</button>`).join('') +
+          '<button class="small" data-act="bombCancel">✕</button>';
+      }
       el.innerHTML =
-        `<button class="primary" data-act="play" ${canPlay ? '' : 'disabled'}>${isBombPlay ? '💣 Bombe!' : 'Spielen'}</button>` +
-        `<button data-act="pass" ${canPass ? '' : 'disabled'}>Passen</button>${wishSel}${tichuBtn}${sortBtn}` +
-        `<span class="hint ${cls}">${esc(hint)}</span>`;
+        `<div class="act-row"><div class="act-slot">${tichuBtn}</div>` +
+        `<button class="primary act-main" data-act="play" ${canPlay ? '' : 'disabled'}>${isBombPlay ? '💣 Bombe!' : 'Spielen'}</button>` +
+        `<button class="act-main" data-act="pass" ${canPass ? '' : 'disabled'}>Passen</button>` +
+        `<div class="act-slot">${bombBtn}</div></div>` +
+        `<div class="act-sub">${sub}</div>`;
       return;
     }
     el.innerHTML = sortBtn;
@@ -434,18 +511,20 @@
     // Große Ansicht: ausgewählte Karten liegen in einer eigenen Reihe über dem Karussell
     const picked = bigHand ? sortedHand(g.hand).filter(c => !inSlots.has(c.id) && isSel(c.id)) : [];
     const tray = $('#hand-picked');
-    tray.classList.toggle('hidden', !bigHand || !picked.length);
+    tray.classList.toggle('hidden', !bigHand);
     tray.innerHTML = picked.length
       ? `<span class="tray-label">Ausgewählt:</span><div class="cards">${picked.map(c => cardHTML(c)).join('')}</div><span class="tray-label">antippen = zurück</span>`
-      : '';
+      : '<span class="tray-label">Angetippte Karten erscheinen hier.</span>';
+    const playable = grayOut ? playableIds(g) : null;
+    const dim = id => (playable && !playable.has(id) ? ' unplayable' : '');
     el.innerHTML = sortedHand(g.hand).filter(c => !inSlots.has(c.id) && !(bigHand && isSel(c.id)))
-      .map(c => cardHTML(c, (isSel(c.id) ? 'sel ' : '') + (receivedIds.has(c.id) ? 'new' : ''))).join('');
+      .map(c => cardHTML(c, (isSel(c.id) ? 'sel ' : '') + (receivedIds.has(c.id) ? 'new' : '') + dim(c.id))).join('');
     el.scrollLeft = scroll;
     const mini = $('#hand-mini');
     mini.classList.toggle('hidden', !bigHand);
     if (bigHand) {
       mini.innerHTML = sortedHand(g.hand).filter(c => !inSlots.has(c.id))
-        .map(c => `<span class="chip ${c.special ? 'sp' : 's-' + c.suit} ${isSel(c.id) ? 'sel' : ''}" data-jump="${c.id}">${chipLabel(c)}</span>`).join('');
+        .map(c => `<span class="chip ${c.special ? 'sp' : 's-' + c.suit} ${isSel(c.id) ? 'sel' : ''}${dim(c.id)}" data-jump="${c.id}">${chipLabel(c)}</span>`).join('');
     }
     carousel();
   }
@@ -599,6 +678,23 @@
         store.set('tichu.bigHand', bigHand ? '1' : '0');
         render();
         break;
+      case 'grayOn': case 'grayOff':
+        grayOut = act === 'grayOn';
+        store.set('tichu.grayOut', grayOut ? '1' : '0');
+        render();
+        break;
+      case 'bomb': {
+        const b = bombInfo(S.game).playable;
+        if (b.length === 1) playBomb(b[0]);
+        else if (b.length > 1) { bombChoice = true; render(); }
+        break;
+      }
+      case 'bombPick': {
+        const b = bombInfo(S.game).playable[Number(el.dataset.i)];
+        if (b) playBomb(b);
+        break;
+      }
+      case 'bombCancel': bombChoice = false; render(); break;
       case 'styleModern': case 'styleClassic':
         CardArt.setStyle(act === 'styleClassic' ? 'classic' : 'modern');
         modalKey = null;
@@ -630,6 +726,7 @@
   document.addEventListener('click', ev => {
     const card = ev.target.closest('#hand .card, #hand-picked .card');
     if (card) return onHandClick(card.dataset.id);
+    if (ev.target.closest('#received')) { $('#received').classList.add('hidden'); return; }
     const chip = ev.target.closest('#hand-mini .chip');
     if (chip) { jumpTo(chip.dataset.jump); return; }
     const slot = ev.target.closest('.ex-slot[data-slot]');

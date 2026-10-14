@@ -4,10 +4,22 @@ const T = require('./public/tichu-core.js');
 const TRICK_CLOSE_MS = 2500; // Zeit für Bomben nachdem dreimal gepasst wurde
 const WIN_SCORE = 1000;
 
+// Zufall; mit TICHU_SEED reproduzierbar (nur zum Testen)
+let random = Math.random;
+if (process.env.TICHU_SEED) {
+  let s = Number(process.env.TICHU_SEED) >>> 0;
+  random = () => {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 function shuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;

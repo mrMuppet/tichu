@@ -33,6 +33,11 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 - Karten anklicken zum Auswählen, **Spielen** (Enter) oder **Passen** (Leertaste), Esc/Rechtsklick hebt die Auswahl auf.
 - **Bomben** können jederzeit außer der Reihe gespielt werden – auch noch kurz nachdem dreimal
   gepasst wurde (Balken unter „Stich geht an …“).
+- **Feste Tasten:** In der Spielphase stehen Tichu | Spielen | Passen | 💣 Bombe immer an derselben Stelle.
+- **Bomben-Taste:** Sobald eine Bombe auf der Hand ist, erscheint „💣 Bombe“ – spielt sie direkt (auch außer der
+  Reihe); bei mehreren passenden Bomben wählt man eine aus.
+- **Unspielbare Karten** werden ausgegraut, wenn man dran ist (im ⚙-Menü abschaltbar).
+- **Geschupfte Karten** werden nach dem Schupfen 5 Sekunden lang angezeigt (von links / Partner / rechts).
 - **Automatisches Überspringen:** Wer weniger Karten hat, als die liegende Kombination braucht, wird
   automatisch übersprungen – außer man hat noch mindestens 4 Karten (dann wäre eine Bombe denkbar).
 - Beim Spielen des Mah Jong erscheint eine Auswahl für den **Wunsch**. Wer den gewünschten Wert
@@ -72,6 +77,7 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 - `public/sounds.js` – Spielklänge (Web Audio, keine Audiodateien)
 - `public/card-art.js` – Kartendesign: SVG-Motive (Jade, Schwert, Pagode, Stern, Phönix, Drache, Hund, Mah Jong)
 - `game.js` – Spielablauf, `bot.js` – einfacher Computerspieler, `server.js` – HTTP + WebSocket
+- `TICHU_SEED=80 npm start` – reproduzierbares Mischen zum Testen
 - `npm test` – Regeltests + 30 simulierte Bot-Partien; `node test/e2e.js` – Test über den echten Server
 
 ## Quellen

@@ -398,6 +398,42 @@ body.cards-classic .back {
 #actions .hint { color: var(--muted); font-size: 14px; }
 /* Erklärungen in eigener, zentrierter Zeile unter den Buttons */
 #actions > span.hint { flex-basis: 100%; text-align: center; min-height: 18px; order: 10; }
+
+/* Spielphase: feste Plätze für Tichu | Spielen | Passen | Bombe */
+.act-row { display: grid; grid-template-columns: 112px 112px 112px 112px; gap: 8px; align-items: center; justify-content: center; }
+.act-slot { display: flex; justify-content: center; }
+.act-slot button, .act-main { width: 100%; }
+.act-sub {
+  flex-basis: 100%; height: 34px; display: flex; gap: 8px; align-items: center; justify-content: center;
+  flex-wrap: nowrap; overflow-x: auto; white-space: nowrap;
+}
+.bomb-btn { background: #5a1a1a; border-color: #ff6b5a; color: #ffd9d2; font-weight: 600; }
+.bomb-btn:hover:not(:disabled) { background: #7a2020; }
+
+/* unspielbare Karten */
+.card.unplayable { filter: grayscale(.85) brightness(.55); }
+#hand .card.unplayable:hover { --ty: 0; }
+#hand-mini .chip.unplayable { opacity: .35; }
+
+/* geschupfte Karten */
+#received {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 20;
+  background: rgba(16, 40, 29, .96); border: 1px solid var(--gold); border-radius: 14px;
+  padding: 12px 16px 10px; box-shadow: 0 10px 40px rgba(0, 0, 0, .6); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+#received .rec-title { font-weight: 700; color: var(--gold); }
+#received .rec-cards { display: flex; gap: 14px; }
+#received .rec-item { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; color: var(--muted); --cw: 62px; --ch: 90px; }
+#received .rec-item b { color: var(--text); max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#received .rec-bar { width: 100%; height: 3px; background: rgba(255, 255, 255, .15); border-radius: 2px; overflow: hidden; }
+#received .rec-bar div { width: 100%; height: 100%; background: var(--gold); transition: width 5s linear; }
+
+/* feste Höhen, damit die Tasten nicht verrutschen */
+.pos-bottom { flex-wrap: nowrap; white-space: nowrap; height: 36px; overflow: hidden; }
+.pos-bottom .meta { flex-wrap: nowrap; }
+#hand-picked { min-height: 100px; }
+#hand-mini { min-height: 47px; align-content: flex-start; }
 #actions .hint.bad { color: #ffb4a8; }
 #actions .hint.good { color: #c8f7c5; }
 .ex-slots { display: flex; gap: 10px; }
@@ -471,6 +507,9 @@ body.cards-classic .back {
 }
 @media (max-width: 560px) {
   :root { --cw: 40px; --ch: 60px; --overlap: -20px; }
+  .act-row { grid-template-columns: 76px 1fr 1fr 76px; width: 100%; gap: 6px; }
+  .act-slot button { padding: 8px 4px; font-size: 13px; }
+  #received .rec-item { --cw: 54px; --ch: 78px; }
   #hand { --cw: 50px; --ch: 74px; --overlap: -28px; }
   #hand.big { --cw: 86px; --ch: 125px; }
   .ex-slots { gap: 4px; }
