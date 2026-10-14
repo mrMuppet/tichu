@@ -185,7 +185,7 @@
       `<span class="names">${esc(nameOf(i))} & ${esc(nameOf(i + 2))}</span><span class="pts">${scores[i]}</span></div>`
     ).join('<span>:</span>');
     const st = S.settings || {};
-    $('#settings-info').textContent = `bis ${st.target || 1000}` + (st.timeLimit ? ' · ⏱ 30 s' : '');
+    $('#settings-info').textContent = `bis ${st.target || 1000}` + (st.timeLimit ? ' · ⏱ 30 s' : '') + (st.seed ? ` · 🎲 ${st.seed}` : '');
   }
 
   function renderTopbar() {
@@ -277,7 +277,12 @@
   function renderCenter() {
     const g = S.game;
     const status = $('#status'), trick = $('#trick');
-    if (!g) { status.innerHTML = ''; trick.innerHTML = lobbyHTML(); return; }
+    if (!g) {
+      status.innerHTML = '';
+      if (document.activeElement && document.activeElement.id === 'seed-input') return;
+      trick.innerHTML = lobbyHTML();
+      return;
+    }
 
     const parts = [];
     if (g.wish) parts.push(`<span class="wish">Wunsch: ${T.rankLabel(g.wish)}</span>`);
@@ -341,7 +346,12 @@
     return `<div class="lobby"><h2>Warteraum – Tisch ${esc(S.room)}</h2>` +
       `<div class="share"><input readonly value="${esc(link)}" onclick="this.select()"><button class="small" data-act="copy">Kopieren</button></div>` +
       `<div class="lobby-opts"><div class="opt-row"><span>Spiel bis</span>${seg('target', st.target, [[500, '500'], [1000, '1000']])}</div>` +
-      `<div class="opt-row"><span>Zeitlimit</span>${seg('timeLimit', st.timeLimit ? 1 : 0, [[0, 'ohne'], [1, '30 s pro Zug']])}</div></div>` +
+      `<div class="opt-row"><span>Zeitlimit</span>${seg('timeLimit', st.timeLimit ? 1 : 0, [[0, 'ohne'], [1, '30 s pro Zug']])}</div>` +
+      `<div class="opt-row"><span>Mischung</span><div class="seed-opt">${seg('seedMode', st.seed ? 1 : 0, [[0, 'zufällig'], [1, 'fest']])}` +
+      (st.seed ? `<input id="seed-input" type="number" min="1" max="2147483647" value="${st.seed}" title="Startwert: gleiche Zahl = gleiche Blätter" ${canEdit ? '' : 'disabled'}>` : '') +
+      `</div></div>` +
+      (st.seed ? '<div class="hint">Feste Mischung: Mit derselben Zahl bekommt ihr wieder dieselben Blätter – Runde für Runde.</div>' : '') +
+      `</div>` +
       `<div class="hint">Partner sitzen sich gegenüber: Plätze 1 & 3 gegen 2 & 4.</div>` +
       `<div class="seats">${slots[0]}${slots[1]}${slots[3]}${slots[2]}</div>${spect}` +
       `<button class="primary" data-act="start" ${full && me() !== null ? '' : 'disabled'}>Spiel starten</button>` +
@@ -710,7 +720,12 @@
       case 'closeHistory': showHistory = false; render(); break;
       case 'setting': {
         const k = el.dataset.key, v = Number(el.dataset.val);
-        send({ t: 'settings', settings: k === 'timeLimit' ? { timeLimit: !!v } : { [k]: v } });
+        if (k === 'seedMode') {
+          const cur = S.settings && S.settings.seed;
+          send({ t: 'settings', settings: { seed: v ? (cur || Math.floor(Math.random() * 9000) + 1000) : null } });
+        } else {
+          send({ t: 'settings', settings: k === 'timeLimit' ? { timeLimit: !!v } : { [k]: v } });
+        }
         break;
       }
     }
@@ -737,6 +752,7 @@
 
   document.addEventListener('change', ev => {
     if (ev.target.id === 'wish-select') wishValue = ev.target.value;
+    if (ev.target.id === 'seed-input') send({ t: 'settings', settings: { seed: ev.target.value } });
   });
 
   $('#hand').addEventListener('scroll', () => requestAnimationFrame(carousel), { passive: true });

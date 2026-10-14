@@ -15,10 +15,14 @@ const TURN_MS = 30000;      // Zeitlimit pro Spielzug
 const EXCHANGE_MS = 60000;  // Zeitlimit fürs Schupfen
 
 function cleanSettings(raw, prev) {
-  const s = Object.assign({ target: 1000, timeLimit: false }, prev);
+  const s = Object.assign({ target: 1000, timeLimit: false, seed: null }, prev);
   if (raw && typeof raw === 'object') {
     if ([500, 1000].includes(Number(raw.target))) s.target = Number(raw.target);
     if ('timeLimit' in raw) s.timeLimit = !!raw.timeLimit;
+    if ('seed' in raw) {
+      const n = parseInt(raw.seed, 10);
+      s.seed = n > 0 && n < 2 ** 31 ? n : null;   // null = zufällig mischen
+    }
   }
   return s;
 }

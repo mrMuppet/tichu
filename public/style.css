@@ -392,6 +392,8 @@ body.cards-classic .back {
 .seg button.on { background: var(--gold); color: #2b2100; font-weight: 600; }
 .lobby-opts { display: flex; flex-direction: column; gap: 6px; background: rgba(0, 0, 0, .2); border-radius: 10px; padding: 8px 12px; }
 #settings-info { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.seed-opt { display: flex; gap: 6px; align-items: center; }
+#seed-input { width: 110px; padding: 4px 8px; font-size: 14px; }
 
 /* ---------- Aktionen ---------- */
 #actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; min-height: 40px; }

@@ -187,3 +187,15 @@ test('Autoskip: ab 4 Karten nie überspringen, auch ohne Bombe', () => {
   ok(g.play(0, ids('j3 s4 p5 t6 j7')));     // Straße (5 Karten)
   assert.strictEqual(g.turn, 1, 'P1 hat 4 Karten (keine Bombe) und muss selbst passen');
 });
+
+test('Feste Mischung: gleicher Startwert = gleiche Blätter, anderer = andere', () => {
+  const deal = seed => {
+    const g = new Game(s => 'P' + s, () => {}, { seed });
+    g.startRound();
+    const r1 = g.fullHands.map(h => h.map(c => c.id).join());
+    g.startRound();
+    return r1.concat(g.fullHands.map(h => h.map(c => c.id).join())).join('|');
+  };
+  assert.strictEqual(deal(4711), deal(4711));
+  assert.notStrictEqual(deal(4711), deal(4712));
+});

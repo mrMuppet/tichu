@@ -4,11 +4,10 @@ const T = require('./public/tichu-core.js');
 const TRICK_CLOSE_MS = 2500; // Zeit für Bomben nachdem dreimal gepasst wurde
 const WIN_SCORE = 1000;
 
-// Zufall; mit TICHU_SEED reproduzierbar (nur zum Testen)
-let random = Math.random;
-if (process.env.TICHU_SEED) {
-  let s = Number(process.env.TICHU_SEED) >>> 0;
-  random = () => {
+// Reproduzierbarer Zufall aus einem Startwert (mulberry32)
+function seededRandom(seed) {
+  let s = seed >>> 0;
+  return () => {
     s = (s + 0x6D2B79F5) >>> 0;
     let t = Math.imul(s ^ (s >>> 15), 1 | s);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
@@ -16,7 +15,7 @@ if (process.env.TICHU_SEED) {
   };
 }
 
-function shuffle(arr) {
+function shuffle(arr, random) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
@@ -32,6 +31,9 @@ class Game {
     this.names = names;          // Funktion seat -> Name
     this.onChange = onChange;    // wird nach asynchronen Änderungen aufgerufen
     this.target = (settings && settings.target) || WIN_SCORE;
+    // Feste Mischung: Tisch-Einstellung, sonst Umgebungsvariable TICHU_SEED, sonst echter Zufall
+    const seed = (settings && settings.seed) || Number(process.env.TICHU_SEED) || null;
+    this.random = seed ? seededRandom(seed) : Math.random;
     this.moves = 0;              // zählt Züge (für das Zeitlimit)
     this.scores = [0, 0];
     this.history = [];
@@ -49,7 +51,7 @@ class Game {
 
   startRound() {
     this.round++;
-    const deck = shuffle(T.createDeck());
+    const deck = shuffle(T.createDeck(), this.random);
     this.fullHands = [0, 1, 2, 3].map(i => deck.slice(i * 14, i * 14 + 14));
     this.hands = this.fullHands.map(h => h.slice(0, 8));
     this.phase = 'grand';

@@ -45,6 +45,7 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 - **Tisch-Einstellungen** (beim Erstellen und im Warteraum änderbar): Spiel bis 500 oder 1000 Punkte,
   Zeitlimit ohne oder 30 s pro Zug (Schupfen 60 s). Läuft die Zeit ab, wird automatisch gepasst bzw. die
   niedrigste Karte gespielt; beim Schupfen werden Karten automatisch gewählt.
+  Mischung „zufällig“ oder „fest“ mit einer Zahl: dieselbe Zahl ergibt wieder dieselben Blätter (zum Nachspielen).
 - **Zug-Anzeige:** Ein goldener Pfeil zeigt auf den Spieler am Zug, dazu „AM ZUG“ mit Countdown.
   Gespielte Karten liegen in Richtung des Spielers, der sie gelegt hat. „🃏 liegt vorne“ markiert, wer die
   oberste Karte gespielt hat, „✋ gepasst“ wer im Stich schon gepasst hat.
@@ -77,7 +78,7 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 - `public/sounds.js` – Spielklänge (Web Audio, keine Audiodateien)
 - `public/card-art.js` – Kartendesign: SVG-Motive (Jade, Schwert, Pagode, Stern, Phönix, Drache, Hund, Mah Jong)
 - `game.js` – Spielablauf, `bot.js` – einfacher Computerspieler, `server.js` – HTTP + WebSocket
-- `TICHU_SEED=80 npm start` – reproduzierbares Mischen zum Testen
+- `TICHU_SEED=80 npm start` – feste Mischung als Standard für alle Tische (zum Testen)
 - `npm test` – Regeltests + 30 simulierte Bot-Partien; `node test/e2e.js` – Test über den echten Server
 
 ## Quellen
