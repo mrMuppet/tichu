@@ -161,6 +161,7 @@
     if (exPick && !handIds.has(exPick)) exPick = null;
     for (const k in exSlots) if (exSlots[k] && !handIds.has(exSlots[k])) exSlots[k] = null;
 
+    document.body.classList.toggle('big-hand', bigHand);
     renderScore();
     renderTopbar();
     renderSeats();
@@ -309,9 +310,10 @@
       const plays = g.trick.plays.slice(-3);
       html = plays.map((p, i) => {
         const old = i < plays.length - 1;
-        return `<div class="play p-${posOf(p.seat)} ${old ? 'old' : 'current'}" style="z-index:${i + 1}">` +
+        const partner = me() !== null && p.seat === (me() + 2) % 4;
+        return `<div class="play p-${posOf(p.seat)} ${old ? 'old' : 'current'}${partner ? ' partner' : ''}" style="z-index:${i + 1}">` +
           `<div class="cards">${p.cards.map(c => cardHTML(c)).join('')}</div>` +
-          (old ? '' : `<div class="desc">${esc(p.desc)}</div>`) + `</div>`;
+          (old ? '' : `<div class="desc">${partner ? '🤝 Partner: ' : ''}${esc(p.desc)}</div>`) + `</div>`;
       }).join('');
     } else if (g.lastTrick && g.phase === 'play') {
       const p = g.lastTrick.plays[g.lastTrick.plays.length - 1];
@@ -478,6 +480,9 @@
         hint = top ? '' : 'Du spielst aus.';
       }
       const isBombPlay = canPlay && T.isBomb(combo) && !myTurn;
+      const partnerLeads = !!(g.trick && me() !== null && g.trick.lastSeat === (me() + 2) % 4);
+      const beatsPartner = canPlay && partnerLeads;
+      if (beatsPartner) { hint = '⚠ Achtung: Du stichst deinen Partner! (' + hint + ')'; cls = 'warn'; }
       const hasMJ = cards.some(c => c.special === 'mahjong');
       let wishSel = '';
       if (hasMJ && canPlay) {
@@ -489,7 +494,7 @@
       const bombs = bombInfo(g);
       if (!bombs.playable.length) bombChoice = false;
       const bombBtn = bombs.all.length
-        ? `<button class="bomb-btn" data-act="bomb" ${bombs.playable.length ? '' : 'disabled'} title="Bombe spielen">💣 Bombe</button>` : '';
+        ? `<button class="bomb-btn" data-act="bomb" ${bombs.playable.length ? '' : 'disabled'} title="${partnerLeads ? 'Achtung: Partner liegt vorne' : 'Bombe spielen'}">💣 Bombe${partnerLeads && bombs.playable.length ? ' ⚠' : ''}</button>` : '';
       let sub = `${wishSel}<span class="hint ${cls}">${esc(hint)}</span>`;
       if (bombChoice) {
         sub = bombs.playable.map((b, i) => `<button class="small bomb-btn" data-act="bombPick" data-i="${i}">💣 ${esc(T.describe(b.combo))}</button>`).join('') +
@@ -497,7 +502,7 @@
       }
       el.innerHTML =
         `<div class="act-row"><div class="act-slot">${tichuBtn}</div>` +
-        `<button class="primary act-main" data-act="play" ${canPlay ? '' : 'disabled'}>${isBombPlay ? '💣 Bombe!' : 'Spielen'}</button>` +
+        `<button class="primary act-main${beatsPartner ? ' warn' : ''}" data-act="play" ${canPlay ? '' : 'disabled'}>${beatsPartner ? '⚠ Stechen' : isBombPlay ? '💣 Bombe!' : 'Spielen'}</button>` +
         `<button class="act-main" data-act="pass" ${canPass ? '' : 'disabled'}>Passen</button>` +
         `<div class="act-slot">${bombBtn}</div></div>` +
         `<div class="act-sub">${sub}</div>`;

@@ -36,6 +36,8 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 - **Feste Tasten:** In der Spielphase stehen Tichu | Spielen | Passen | 💣 Bombe immer an derselben Stelle.
 - **Bomben-Taste:** Sobald eine Bombe auf der Hand ist, erscheint „💣 Bombe“ – spielt sie direkt (auch außer der
   Reihe); bei mehreren passenden Bomben wählt man eine aus.
+- **Partner liegt vorne:** Seine Karte ist blau markiert („🤝 Partner“); wer sie stechen würde, bekommt eine orange
+  Taste „⚠ Stechen“ und einen Warnhinweis.
 - **Unspielbare Karten** werden ausgegraut, wenn man dran ist (im ⚙-Menü abschaltbar).
 - **Geschupfte Karten** werden nach dem Schupfen 5 Sekunden lang angezeigt (von links / Partner / rechts).
 - **Automatisches Überspringen:** Wer weniger Karten hat, als die liegende Kombination braucht, wird
@@ -53,7 +55,8 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
   Antippen einer Karte im Feld legt sie zurück.
 - **Ansicht (⚙ oben rechts):** Sortierung nach Wert oder Farbe, jeweils auf- oder absteigend; Handkarten „Normal“ oder „Groß“.
   „Groß“ macht die Hand zum Karussell mit großen Karten: wischen (Finger, Maus ziehen oder Mausrad).
-  Ausgewählte Karten wandern in eine Auswahl-Reihe darüber und bleiben so immer sichtbar;
+  Ausgewählte Karten wandern in eine Auswahl-Reihe darüber und bleiben so immer sichtbar; auch die gespielten
+  Karten in der Tischmitte werden größer;
   eine Mini-Übersicht zeigt alle Handkarten – antippen springt zur Karte.
 - **Töne:** Klänge für Ausspielen, Passen, Bombe, Drache, Hund (echtes Bellen), Tichu, Stich, Rundenende und
   „Du bist dran“ – im ⚙-Menü abschaltbar. Dort lässt sich auch das Kartendesign wählen: „Modern“ oder „Klassisch“.

@@ -404,13 +404,26 @@ body.cards-classic .back {
 /* Spielphase: feste Plätze für Tichu | Spielen | Passen | Bombe */
 .act-row { display: grid; grid-template-columns: 112px 112px 112px 112px; gap: 8px; align-items: center; justify-content: center; }
 .act-slot { display: flex; justify-content: center; }
-.act-slot button, .act-main { width: 100%; }
+.act-slot button, .act-main { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .act-sub {
   flex-basis: 100%; height: 34px; display: flex; gap: 8px; align-items: center; justify-content: center;
   flex-wrap: nowrap; overflow-x: auto; white-space: nowrap;
 }
 .bomb-btn { background: #5a1a1a; border-color: #ff6b5a; color: #ffd9d2; font-weight: 600; }
 .bomb-btn:hover:not(:disabled) { background: #7a2020; }
+
+/* Partner liegt vorne */
+.play.partner .cards { filter: drop-shadow(0 0 7px rgba(111, 183, 255, .95)) drop-shadow(0 0 2px rgba(111, 183, 255, .9)); }
+.play.partner .desc { background: #1f4f80; color: #fff; font-weight: 600; }
+#actions .hint.warn { color: #ffc46b; font-weight: 600; }
+button.primary.warn { background: #f08a24; border-color: #f08a24; color: #241200; }
+button.primary.warn:hover:not(:disabled) { background: #ffa04a; }
+
+/* große Ansicht: auch die gespielten Karten größer */
+body.big-hand #trick .card { --cw: 80px; --ch: 116px; }
+body.big-hand #trick .cards .card { margin-left: -30px; }
+body.big-hand #trick .cards .card:first-child { margin-left: 0; }
+body.big-hand #trick { height: 270px; }
 
 /* unspielbare Karten */
 .card.unplayable { filter: grayscale(.85) brightness(.55); }
@@ -510,6 +523,22 @@ body.cards-classic .back {
 @media (max-width: 560px) {
   :root { --cw: 40px; --ch: 60px; --overlap: -20px; }
   .act-row { grid-template-columns: 76px 1fr 1fr 76px; width: 100%; gap: 6px; }
+  body.big-hand #trick .card { --cw: 56px; --ch: 81px; }
+  body.big-hand #trick .cards .card { margin-left: -22px; }
+  body.big-hand #trick .cards .card:first-child { margin-left: 0; }
+  body.big-hand #trick { height: 170px; }
+  body.big-hand .play.p-top { --dy: -28px; }
+  body.big-hand .play.p-left, body.big-hand .play.p-right { --dy: -22px; }
+  body.big-hand .play.p-bottom { --dy: 34px; }
+  /* Tischmitte unten verankern, damit sie nicht in die oberen Plätze ragt */
+  body.big-hand #center { top: auto; bottom: 2px; transform: translateX(-50%); gap: 4px; }
+  body.big-hand #hand-picked { min-height: 76px; padding: 4px 8px; }
+  body.big-hand #hand-picked { --cw: 44px; --ch: 64px; }
+  body.big-hand #hand.big { padding-top: 14px; }
+  #settings-info { display: none; }
+  .room-info { white-space: nowrap; }
+  .act-main { padding: 8px 4px; font-size: 15px; }
+  body.big-hand #turn-arrow.at-bottom { left: 90%; }
   .act-slot button { padding: 8px 4px; font-size: 13px; }
   #received .rec-item { --cw: 54px; --ch: 78px; }
   #hand { --cw: 50px; --ch: 74px; --overlap: -28px; }
