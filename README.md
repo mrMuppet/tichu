@@ -61,8 +61,14 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 - **Töne:** Klänge für Ausspielen, Passen, Bombe, Drache, Hund (echtes Bellen), Tichu, Stich, Rundenende und
   „Du bist dran“ – im ⚙-Menü abschaltbar. Dort lässt sich auch das Kartendesign wählen: „Modern“ oder „Klassisch“.
 - **Pause (⏸ oben rechts):** hält das Spiel an – Bots und Zeitlimit warten, bis jemand „Weiter“ drückt.
-- Verbindungsabbruch? Einfach die Seite neu laden – man landet wieder auf seinem Platz
-  (auch von einem anderen Gerät mit demselben Namen).
+- **Spiel abbrechen / neu starten (⚙-Menü):** startet eine Abstimmung. Alle *verbundenen* menschlichen Mitspieler
+  müssen zustimmen (Bots und Offline-Spieler zählen nicht – allein mit Bots geht es sofort). Abbruch führt in den
+  Warteraum, Neustart beginnt sofort wieder bei 0 : 0. Ein „Nein“ oder 60 s ohne Einigung beenden die Abstimmung.
+- **Tisch verlassen (⚙-Menü):** Während des Spiels übernimmt ein Bot den Platz, die anderen spielen weiter.
+- **Verbindungsabbruch:** Der Platz bleibt reserviert und zeigt „offline“. Seite neu laden (oder auf einem anderen
+  Gerät mit demselben Namen beitreten) bringt einen zurück. Ohne Zeitlimit wartet das Spiel; mit Zeitlimit werden
+  automatische Züge gemacht. Die anderen können mit „🤖 Bot einsetzen“ einen Bot einspringen lassen.
+  Wer zurückkommt (oder nach dem Verlassen wieder beitritt), übernimmt seinen Platz wieder vom Bot.
 
 ## Regeln (umgesetzt)
 
@@ -82,7 +88,7 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 - `public/card-art.js` – Kartendesign: SVG-Motive (Jade, Schwert, Pagode, Stern, Phönix, Drache, Hund, Mah Jong)
 - `game.js` – Spielablauf, `bot.js` – einfacher Computerspieler, `server.js` – HTTP + WebSocket
 - `TICHU_SEED=80 npm start` – feste Mischung als Standard für alle Tische (zum Testen)
-- `npm test` – Regeltests + 30 simulierte Bot-Partien; `node test/e2e.js` – Test über den echten Server
+- `npm test` – Regeltests + 30 simulierte Bot-Partien; `node test/e2e.js` / `node test/e2e-multi.js` – Tests über den echten Server (mit zwei Menschen: Abstimmung, Verbindungsabbruch, Bot-Ersatz)
 
 ## Quellen
 

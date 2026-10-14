@@ -98,6 +98,13 @@ input, select {
 }
 .menu-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; }
 .menu-note { font-size: 12px; color: var(--muted); }
+.menu-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.menu-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.menu-actions + .menu-note { border-bottom: 1px solid rgba(255, 255, 255, .12); padding-bottom: 10px; }
+.sub-btn { font-size: 11px; padding: 3px 8px; }
+.vote-list { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.vote-p { background: rgba(255, 255, 255, .1); border-radius: 10px; padding: 3px 10px; font-size: 14px; }
+.vote-p.yes { background: #2f8f4e; color: #fff; }
 
 #table { grid-area: table; position: relative; min-height: 0; }
 #me { grid-area: me; min-width: 0; padding: 4px 10px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }

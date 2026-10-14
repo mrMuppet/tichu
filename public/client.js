@@ -61,6 +61,15 @@
         render();
       } else if (msg.t === 'error') {
         toast(msg.msg);
+      } else if (msg.t === 'left') {
+        room = null;
+        S = null;
+        history.replaceState(null, '', '/');
+        $('#game').classList.add('hidden');
+        $('#start').classList.remove('hidden');
+        $('#overlay').classList.add('hidden');
+        modalKey = null;
+        toast('Du hast den Tisch verlassen.');
       } else if (msg.t === 'kicked') {
         room = null;
         toast('Du hast diesen Tisch in einem anderen Fenster geöffnet.');
@@ -193,7 +202,15 @@
     const g = S.game;
     const active = g && ['grand', 'exchange', 'play', 'dragon'].includes(g.phase);
     $('#pause-btn').classList.toggle('hidden', !(active && me() !== null && !S.paused));
-    $('#menu').innerHTML =
+    const inGame = g && g.phase !== 'lobby';
+    const gameActions = me() === null ? '' : inGame
+      ? `<div class="menu-title">Spiel</div><div class="menu-actions">` +
+        `<button class="small" data-act="voteAbort" ${S.vote ? 'disabled' : ''}>⏹ Abbrechen</button>` +
+        `<button class="small" data-act="voteRestart" ${S.vote ? 'disabled' : ''}>🔄 Neu starten</button>` +
+        `<button class="small" data-act="leaveTable">🚪 Verlassen</button></div>` +
+        `<div class="menu-note">Abbrechen/Neustart: alle verbundenen Mitspieler müssen zustimmen. Beim Verlassen spielt ein Bot für dich weiter.</div>`
+      : `<div class="menu-actions"><button class="small" data-act="leaveTable">🚪 Tisch verlassen</button></div>`;
+    $('#menu').innerHTML = gameActions +
       `<div class="menu-row"><span>Sortierung</span><div class="seg">` +
       `<button class="small ${!sortBySuit ? 'on' : ''}" data-act="sortVal">Wert</button>` +
       `<button class="small ${sortBySuit ? 'on' : ''}" data-act="sortSuit">Farbe</button></div></div>` +
@@ -255,6 +272,7 @@
       const place = g.finished.indexOf(seat);
       if (place >= 0) badges.push(`<span class="badge place">${place + 1}. Platz</span>`);
       if (info && !info.online) badges.push('<span class="badge off">offline</span>');
+      const canReplace = info && !info.bot && !info.online && !isMe && me() !== null && g.phase !== 'gameOver';
       const meta = [];
       if (g.phase === 'grand') meta.push(g.grandDecided[seat] ? '✓ entschieden' : 'überlegt…');
       else if (g.phase === 'exchange') meta.push(g.exchanged[seat] ? '✓ geschupft' : 'schupft…');
@@ -268,6 +286,7 @@
         `<div class="name"><span class="team-dot team-${team(seat)}"></span>${esc(nameOf(seat))}${isMe ? ' (du)' : ''}${info && info.bot ? ' 🤖' : ''}</div>` +
         (badges.length ? `<div class="meta">${badges.join('')}</div>` : '') +
         (!isMe ? fanHTML(count) : '') +
+        (canReplace ? `<button class="small sub-btn" data-act="replaceOffline" data-seat="${seat}">🤖 Bot einsetzen</button>` : '') +
         `<div class="meta">${meta.join(' · ')}</div>`;
     }
     // Pfeil zum Spieler, der am Zug ist
@@ -596,7 +615,20 @@
   function renderModal() {
     const g = S.game;
     let key = null, html = '';
-    if (g && S.paused) {
+    const v = S.vote;
+    if (v && me() !== null) {
+      const what = v.kind === 'restart' ? 'neu starten' : 'abbrechen';
+      const status = v.eligible.map(s => `<span class="vote-p ${v.yes.includes(s) ? 'yes' : ''}">${v.yes.includes(s) ? '✓' : '…'} ${esc(nameOf(s))}</span>`).join('');
+      const mine = v.yes.includes(me());
+      key = 'vote' + v.kind + v.yes.join() + v.eligible.join() + (mine ? 'y' : 'n');
+      html = `<h2>${v.kind === 'restart' ? '🔄' : '⏹'} Spiel ${what}?</h2>` +
+        `<p style="text-align:center"><b>${esc(v.byName)}</b> möchte das Spiel ${what}.` +
+        (v.kind === 'restart' ? ' Der Punktestand beginnt wieder bei 0.' : ' Ihr landet wieder im Warteraum.') + `</p>` +
+        `<div class="vote-list">${status}</div>` +
+        (mine
+          ? `<div class="btn-row"><button data-act="voteNo">${v.by === me() ? 'Zurückziehen' : 'Doch nicht'}</button></div><p class="hint" style="text-align:center">Warte auf die anderen…</p>`
+          : `<div class="btn-row"><button class="primary" data-act="voteYes">Ja, einverstanden</button><button class="danger" data-act="voteNo">Nein</button></div>`);
+    } else if (g && S.paused) {
       key = 'paused';
       html = `<h2>⏸ Spiel pausiert</h2><p style="text-align:center">Pausiert von <b>${esc(S.paused.by)}</b>.</p>` +
         (me() !== null ? '<div class="btn-row"><button class="primary" data-act="resume">▶ Weiter spielen</button></div>' : '');
@@ -720,6 +752,21 @@
         Sfx.setMuted(act === 'soundOff');
         if (act === 'soundOn') Sfx.play('turn');
         render();
+        break;
+      case 'voteAbort': $('#menu').classList.add('hidden'); send({ t: 'voteStart', kind: 'abort' }); break;
+      case 'voteRestart': $('#menu').classList.add('hidden'); send({ t: 'voteStart', kind: 'restart' }); break;
+      case 'voteYes': send({ t: 'voteYes' }); break;
+      case 'voteNo': send({ t: 'voteNo' }); break;
+      case 'leaveTable': {
+        const g2 = S && S.game;
+        const msgText = g2 && g2.phase !== 'lobby' ? 'Tisch verlassen? Ein Bot spielt für dich weiter. Mit dem Einladungslink kannst du später zurück.' : 'Tisch verlassen?';
+        if (confirm(msgText)) send({ t: 'leaveTable' });
+        break;
+      }
+      case 'replaceOffline':
+        if (confirm(`${nameOf(Number(el.dataset.seat))} durch einen Bot vertreten lassen? Kommt der Spieler zurück, übernimmt er wieder.`)) {
+          send({ t: 'replaceOffline', seat: Number(el.dataset.seat) });
+        }
         break;
       case 'pause': send({ t: 'pause' }); break;
       case 'resume': send({ t: 'resume' }); break;

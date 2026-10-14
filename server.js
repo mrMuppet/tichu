@@ -12,6 +12,7 @@ const PUBLIC = path.join(__dirname, 'public');
 const BOT_DELAY_MS = 900;
 const BOT_NAMES = ['Bot Wu', 'Bot Li', 'Bot Chen', 'Bot Mei'];
 const TURN_MS = 30000;      // Zeitlimit pro Spielzug
+const VOTE_MS = 60000;      // Abstimmung über Abbruch/Neustart
 const EXCHANGE_MS = 60000;  // Zeitlimit fürs Schupfen
 
 function cleanSettings(raw, prev) {
@@ -57,6 +58,52 @@ class Room {
     this.botTimer = null;
     this.lastActivity = Date.now();
     this.chat = [];
+    this.vote = null;       // { kind: 'abort'|'restart', by, byName, yes: Set, timer, until }
+  }
+
+  system(text) {
+    if (this.game) this.game.log(text);
+    else {
+      this.chat.push({ name: 'Tisch', text, ts: Date.now() });
+      if (this.chat.length > 100) this.chat.shift();
+    }
+  }
+
+  // Mensch an diesem Platz, der gerade verbunden ist
+  humanOnline(s) {
+    const x = this.seats[s];
+    if (!x || x.bot) return false;
+    const c = this.clients.get(x.token);
+    return !!(c && c.ws);
+  }
+
+  // Bot übernimmt einen Platz; der Mensch kann ihn später zurückbekommen
+  substitute(s) {
+    const x = this.seats[s];
+    this.seats[s] = { bot: true, name: `${x.name} (Bot)`, subFor: { token: x.token, name: x.name } };
+    const c = this.clients.get(x.token);
+    if (c) c.seat = null;
+  }
+
+  // Abstimmung abgeschlossen, wenn alle verbundenen Menschen zugestimmt haben
+  checkVote() {
+    const v = this.vote;
+    if (!v || !this.inGame()) { if (v) { clearTimeout(v.timer); this.vote = null; } return; }
+    const eligible = [0, 1, 2, 3].filter(s => this.humanOnline(s));
+    if (!eligible.every(s => v.yes.has(s))) return;
+    clearTimeout(v.timer);
+    this.vote = null;
+    if (this.game) this.game.destroy();
+    this.paused = null;
+    this.pausedTimer = null;
+    if (v.kind === 'restart') {
+      this.game = new Game(s => this.seatName(s), () => this.broadcast(), this.settings);
+      this.game.startRound();
+      this.system('🔄 Das Spiel wurde neu gestartet.');
+    } else {
+      this.game = null;
+      this.system('⏹ Das Spiel wurde abgebrochen.');
+    }
   }
 
   seatName(s) { return this.seats[s] ? this.seats[s].name : `Platz ${s + 1}`; }
@@ -70,9 +117,13 @@ class Room {
       // Wiedereinstieg über den Namen, falls der Platz verwaist ist
       const s = this.seats.findIndex(x => x && !x.bot && x.name.toLowerCase() === name.toLowerCase() &&
         !(this.clients.get(x.token) && this.clients.get(x.token).ws));
+      const sub = this.seats.findIndex(x => x && x.subFor && x.subFor.name.toLowerCase() === name.toLowerCase());
       if (s >= 0) {
         token = this.seats[s].token;
         client = this.clients.get(token) || { name, seat: s };
+      } else if (sub >= 0) {
+        token = this.seats[sub].subFor.token;
+        client = this.clients.get(token) || { name, seat: null };
       } else {
         token = crypto.randomBytes(12).toString('hex');
         client = { name, seat: null };
@@ -87,6 +138,14 @@ class Room {
       try { client.ws.send(JSON.stringify({ t: 'kicked' })); client.ws.close(); } catch (e) { /* egal */ }
     }
     client.ws = ws;
+    const back = this.seats.findIndex(x => x && x.subFor && x.subFor.token === token);
+    if (back >= 0 && client.seat === null) {
+      const orig = this.seats[back].subFor;
+      this.seats[back] = { token, name: orig.name };
+      client.seat = back;
+      client.name = orig.name;
+      this.system(`↩ ${orig.name} ist zurück und übernimmt wieder vom Bot.`);
+    }
     if (!this.inGame() && client.seat === null) {
       const free = this.seats.findIndex(x => !x);
       if (free >= 0) { this.seats[free] = { token, name }; client.seat = free; }
@@ -154,6 +213,54 @@ class Room {
         if (this.inGame()) break;
         const s = Number(msg.seat);
         if (this.isBot(s)) this.seats[s] = null;
+        break;
+      }
+      case 'leaveTable': {
+        if (client.seat !== null) {
+          if (this.inGame()) {
+            this.substitute(client.seat);
+            this.system(`🚪 ${client.name} hat den Tisch verlassen – ein Bot spielt weiter.`);
+          } else {
+            this.seats[client.seat] = null;
+            client.seat = null;
+          }
+        }
+        client.ws = null;
+        ws.room = null;
+        ws.send(JSON.stringify({ t: 'left' }));
+        break;
+      }
+      case 'replaceOffline': {
+        const s = Number(msg.seat);
+        if (!this.inGame() || seat === null || !this.seats[s] || this.seats[s].bot || this.humanOnline(s)) break;
+        const n = this.seats[s].name;
+        this.substitute(s);
+        this.system(`🤖 Ein Bot vertritt ${n}, bis ${n} zurückkommt.`);
+        break;
+      }
+      case 'voteStart': {
+        if (!this.inGame() || seat === null || this.vote) break;
+        const kind = msg.kind === 'restart' ? 'restart' : 'abort';
+        const timer = setTimeout(() => {
+          if (this.vote && this.vote.timer === timer) {
+            this.vote = null;
+            this.system('Abstimmung abgelaufen.');
+            this.broadcast();
+          }
+        }, VOTE_MS);
+        this.vote = { kind, by: seat, byName: client.name, yes: new Set([seat]), timer, until: Date.now() + VOTE_MS };
+        this.system(`🗳 ${client.name} möchte das Spiel ${kind === 'restart' ? 'neu starten' : 'abbrechen'}.`);
+        break;
+      }
+      case 'voteYes': {
+        if (this.vote && seat !== null) this.vote.yes.add(seat);
+        break;
+      }
+      case 'voteNo': {
+        if (!this.vote || seat === null) break;
+        clearTimeout(this.vote.timer);
+        this.system(seat === this.vote.by ? `${client.name} hat die Abstimmung zurückgezogen.` : `${client.name} ist dagegen – das Spiel geht weiter.`);
+        this.vote = null;
         break;
       }
       case 'pause': {
@@ -309,6 +416,7 @@ class Room {
   }
 
   broadcast() {
+    this.checkVote();
     this.syncTimer();
     for (const [token, client] of this.clients) {
       if (!client.ws || client.ws.readyState !== 1) continue;
@@ -322,11 +430,16 @@ class Room {
     const seats = this.seats.map((s, i) => s ? {
       name: s.name, bot: !!s.bot,
       online: !!s.bot || !!(this.clients.get(s.token) && this.clients.get(s.token).ws),
+      sub: !!s.subFor,
     } : null);
     const spectators = [...this.clients.values()].filter(c => c.seat === null && c.ws).map(c => c.name);
     const timer = this.timer ? { ms: Math.max(0, this.timer.deadline - Date.now()), total: this.timer.total } : null;
     return {
-      room: this.code, you: seat, seats, settings: this.settings, timer, paused: this.paused, spectators, chat: this.chat.slice(-50),
+      room: this.code, you: seat, seats, settings: this.settings, timer, paused: this.paused,
+      vote: this.vote ? {
+        kind: this.vote.kind, by: this.vote.by, byName: this.vote.byName, yes: [...this.vote.yes],
+        eligible: [0, 1, 2, 3].filter(s => this.humanOnline(s)), ms: Math.max(0, this.vote.until - Date.now()),
+      } : null, spectators, chat: this.chat.slice(-50),
       game: this.game ? this.game.view(seat) : null,
     };
   }
@@ -386,6 +499,7 @@ setInterval(() => {
       if (room.game) room.game.destroy();
       clearTimeout(room.botTimer);
       if (room.timer) clearTimeout(room.timer.handle);
+      if (room.vote) clearTimeout(room.vote.timer);
       rooms.delete(code);
     }
   }
