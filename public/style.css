@@ -202,6 +202,11 @@ input, select {
 .cards .card { margin-left: -18px; }
 .cards .card:first-child { margin-left: 0; }
 
+/* Warteraum: normales, scrollbares Layout statt der Tischmitte */
+#table.in-lobby { overflow-y: auto; }
+#table.in-lobby #center { position: static; transform: none; width: 100%; max-width: 560px; margin: 0 auto; padding: 12px; }
+#table.in-lobby #trick { height: auto; }
+
 /* Warteraum */
 .lobby { background: var(--panel); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 10px; width: 100%; }
 .lobby h2 { margin: 0; font-size: 20px; text-align: center; }

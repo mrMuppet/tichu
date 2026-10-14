@@ -278,6 +278,7 @@
   function renderCenter() {
     const g = S.game;
     const status = $('#status'), trick = $('#trick');
+    $('#table').classList.toggle('in-lobby', !g);
     if (!g) {
       status.innerHTML = '';
       if (document.activeElement && document.activeElement.id === 'seed-input') return;
