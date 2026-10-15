@@ -334,7 +334,7 @@ class Room {
     if (!g || this.paused || !this.seats.some(s => s && s.bot)) return;
     for (let s = 0; s < 4; s++) {
       if (!this.isBot(s)) continue;
-      const action = bot.decide(g, s);
+      const action = bot.wantsToAct(g, s); // schnelle Probe, die eigentliche Entscheidung fällt im Timer
       if (!action) continue;
       this.botTimer = setTimeout(() => {
         if (this.game !== g) return;
@@ -343,6 +343,7 @@ class Room {
         let e;
         switch (a.type) {
           case 'grand': e = g.grand(s, a.call); break;
+          case 'tichu': e = g.callTichu(s); break;
           case 'exchange': e = g.submitExchange(s, a.ex); break;
           case 'dragon': e = g.giveDragon(s, a.to); break;
           case 'play': e = g.play(s, a.ids, a.wish); break;

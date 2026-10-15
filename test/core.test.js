@@ -2,7 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 const T = require('../public/tichu-core.js');
 const { Game } = require('../game.js');
-const bot = require('../bot.js');
+const serverBot = require('../bot.js');
+const counter = require('../bots/counter.js');
 
 const deck = T.createDeck();
 const byId = id => deck.find(c => c.id === id);
@@ -78,14 +79,23 @@ test('Wunschzwang', () => {
   assert.ok(T.mustFulfillWish(cards('j8 s8 p8 t8 s3'), an('DR'), 8));
 });
 
-function simulate(seed) {
+function simulate(seed, bot = counter) {
   let changes = 0;
   const g = new Game(s => 'P' + s, () => { changes++; });
   g.startRound();
   let steps = 0;
   while (g.phase !== 'gameOver' && steps < 20000) {
     steps++;
-    if (g.closing) { clearTimeout(g.closing.timer); g.closing = null; g.finishTrick(); continue; }
+    if (g.closing) {
+      // Bots dürfen noch eine Bombe werfen, bevor der Stich vergeben wird
+      let bombed = false;
+      for (let s = 0; s < 4 && !bombed; s++) {
+        const a = bot.decide(g, s);
+        if (a) { assert.strictEqual(a.type, 'play'); assert.strictEqual(g.play(s, a.ids, a.wish), undefined); bombed = true; }
+      }
+      if (!bombed) { clearTimeout(g.closing.timer); g.closing = null; g.finishTrick(); }
+      continue;
+    }
     if (g.phase === 'roundEnd') {
       // Kartenpunkte einer Runde: immer 100 oder Doppelsieg 200
       const cp = g.result.cardPts;
@@ -99,6 +109,7 @@ function simulate(seed) {
       if (!a) continue;
       let e;
       if (a.type === 'grand') e = g.grand(s, Math.random() < 0.05);
+      if (a.type === 'tichu') e = g.callTichu(s);
       if (a.type === 'exchange') e = g.submitExchange(s, a.ex);
       if (a.type === 'dragon') e = g.giveDragon(s, a.to);
       if (a.type === 'play') e = g.play(s, a.ids, a.wish);
@@ -126,5 +137,60 @@ test('Komplette Bot-Partien laufen fehlerfrei durch', () => {
   for (let i = 0; i < 30; i++) {
     const g = simulate(i);
     assert.ok(Math.max(...g.scores) >= 1000);
+  }
+});
+
+test('Server-Bot (Such-Bot) spielt eine komplette Partie fehlerfrei', () => {
+  // kleines, festes Suchbudget, damit der Test schnell bleibt
+  const P = require('../bots/search.js').P;
+  const saved = { ...P };
+  Object.assign(P, { WORLDS: 2, MS: 1e9 });
+  try {
+    const g = simulate(1, serverBot);
+    assert.ok(Math.max(...g.scores) >= 1000);
+  } finally {
+    Object.assign(P, saved);
+  }
+});
+
+// Referenz: alle 2^n Teilmengen durchprobieren (alte Implementierung)
+function legalPlaysBrute(hand, top, mustRank) {
+  const n = hand.length;
+  const out = [];
+  const wishIdx = mustRank ? hand.map((c, i) => (!c.special && c.rank === mustRank ? i : -1)).filter(i => i >= 0) : null;
+  if (wishIdx && wishIdx.length === 0) return out;
+  for (let mask = 1; mask < (1 << n); mask++) {
+    if (wishIdx && !wishIdx.some(i => mask & (1 << i))) continue;
+    let size = 0;
+    for (let m = mask; m; m &= m - 1) size++;
+    if (top && size !== top.len && size < 4) continue;
+    const cs = [];
+    for (let i = 0; i < n; i++) if (mask & (1 << i)) cs.push(hand[i]);
+    const combo = T.analyze(cs, top);
+    if (combo && T.beats(combo, top)) out.push(mask);
+  }
+  return out;
+}
+
+test('legalPlays liefert genau dieselben Züge wie die Brute-Force-Suche', () => {
+  let rnd = 12345;
+  const random = () => ((rnd = (rnd * 1103515245 + 12345) % 2147483648) / 2147483648);
+  for (let iter = 0; iter < 400; iter++) {
+    const d = T.createDeck().map(c => [random(), c]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+    const hand = d.slice(0, 1 + Math.floor(random() * 14));
+    // Häufungen erzwingen (Bomben, Straßen, Paarfolgen)
+    if (iter % 3 === 0) {
+      const r = 2 + Math.floor(random() * 9);
+      const extra = T.createDeck().filter(c => !c.special && c.rank >= r && c.rank < r + 5 && !hand.some(h => h.id === c.id));
+      while (hand.length < 14 && extra.length) hand.push(extra.splice(Math.floor(random() * extra.length), 1)[0]);
+    }
+    const tops = [null];
+    for (const p of T.legalPlays(d.slice(20, 34), null)) if (random() < 0.05) tops.push(p.combo);
+    for (const top of tops) {
+      for (const wish of [null, 2 + Math.floor(random() * 13)]) {
+        const fast = T.legalPlays(hand, top, wish).map(p => p.mask);
+        assert.deepStrictEqual(fast, legalPlaysBrute(hand, top, wish));
+      }
+    }
   }
 });

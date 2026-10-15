@@ -86,9 +86,65 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
 - `public/tichu-core.js` – Kombinationen und Regeln (Server und Browser)
 - `public/sounds.js` – Spielklänge (Web Audio, keine Audiodateien)
 - `public/card-art.js` – Kartendesign: SVG-Motive (Jade, Schwert, Pagode, Stern, Phönix, Drache, Hund, Mah Jong)
-- `game.js` – Spielablauf, `bot.js` – einfacher Computerspieler, `server.js` – HTTP + WebSocket
+- `game.js` – Spielablauf, `bot.js` – Computerspieler (Such-Bot aus `bots/`; Vergleich mit `node arena/arena.js`), `server.js` – HTTP + WebSocket
 - `TICHU_SEED=80 npm start` – feste Mischung als Standard für alle Tische (zum Testen)
 - `npm test` – Regeltests + 30 simulierte Bot-Partien; `node test/e2e.js` / `node test/e2e-multi.js` – Tests über den echten Server (mit zwei Menschen: Abstimmung, Verbindungsabbruch, Bot-Ersatz)
+
+### Bots und Arena
+
+- `bots/counter.js` – **Kartenzähler**: merkt sich gespielte und geschupfte Karten, zerlegt
+  die Hand in möglichst wenige starke Kombinationen und bewertet jeden Zug danach, wie sehr er die
+  Hand verbessert und wie wahrscheinlich er den Stich gewinnt. Tichu/Großes Tichu über ein
+  aus Selbstspiel gelerntes Modell (Wahrscheinlichkeit, zuerst rauszugehen). Sieht nur, was ein
+  Mensch am Tisch auch weiß.
+- `bots/search.js` – **Such-Bot** (Standard, Stufe 2): rechnet beim Ausspielen und Folgen voraus. Die
+  unbekannten Karten werden mehrfach zufällig auf die anderen Spieler verteilt – passend zu
+  Kartenzahlen, gespielten und selbst geschupften Karten und zu Wunsch-Zwängen (wer bei offenem
+  Wunsch gepasst oder anders gespielt hat, konnte ihn nicht erfüllen). Für die besten Züge laut
+  Kartenzähler plus Passen wird die Runde in jeder dieser Welten mit dem Kartenzähler zu Ende
+  gespielt; gewählt wird der Zug mit dem besten durchschnittlichen Rundenergebnis fürs eigene Team.
+  Ansagen, Schupfen, Drache und Bomben außer der Reihe übernimmt der Kartenzähler. Stellschrauben
+  in `P`: `TOP` (Kandidaten), `WORLDS` (Verteilungen je Zug), `MS` (Zeitbudget je Zug, Standard
+  300 ms), `MARGIN`. Sieht wie der Kartenzähler nur öffentliche Information plus die eigene Hand.
+  Der Server verwendet den Such-Bot mit dem Standardbudget von 300 ms je Zug. Ein kürzeres
+  Budget kostet deutlich Spielstärke: mit 150 ms nur noch +3,1 ± 4,7 statt +20,3 ± 4,7 Punkte je
+  Runde gegen den Kartenzähler (200 Mischungen). Ob ein Bot gerade handeln will, prüft der Server
+  vorab mit dem Kartenzähler (`bot.wantsToAct`), damit die Suche nur einmal je Zug läuft.
+- `bots/simple.js` – der frühere einfache Bot (Vergleichsgegner).
+- `bots/rule.js` – **Regel-Bot** wie die Vergleichsgegner in den Arbeiten von Müller (ETH 2020) und
+  Wyss (Uni Bern 2024): sagt nie Tichu an, schupft die zwei niedrigsten Karten an die Gegner und die
+  höchste an den Partner, spielt immer die niedrigste mögliche Kombination, beim Ausspielen die mit
+  den meisten Karten. Grober Maßstab: search +99,5 ± 4,3, counter +72,7 ± 2,7, simple +25,7 ± 2,1
+  Punkte je Runde gegen rule (veröffentlicht: Wyss' bester lernender Agent, PPO mit Behavioral
+  Cloning, etwa +90 gegen seinen Regel-Bot; Regeln im Detail und Zielpunktzahl können abweichen).
+- `node arena/arena.js --a counter --b simple --games 500` – Bot gegen Bot ohne Server. Jede Mischung
+  wird zweimal mit getauschten Plätzen gespielt (Duplicate), Ausgabe: gewonnene Partien, Punkte je
+  Runde mit Konfidenzintervall, Tichu-Quoten. Die Mischungen laufen parallel auf allen
+  Prozessorkernen (`--jobs N` begrenzt, `--jobs 1` spielt alles nacheinander).
+- `node arena/arena.js --a search --b counter --games 200` – Such-Bot gegen Kartenzähler
+  (dauert einige Minuten). Stand: +21,3 ± 4,6 Punkte je Runde, 69 % der Partien gewonnen;
+  Rechenzeit je Suchzug im Median ≈ 40 ms, höchstens ≈ 300 ms.
+- Ausprobiert und verworfen (Stufe 3, Duplicate-Arena, 95-%-Intervalle; übernommen wird nur, was
+  signifikant hilft):
+  - *Weiche Inferenz* (Müller 2020): ausgedachte Verteilungen danach gewichten, wie wahrscheinlich die
+    beobachteten Züge und Pässe der anderen unter dem Kartenzähler gewesen wären (Softmax über seine
+    Zugbewertungen, Fehlerrate EPS). search mit gegen ohne Inferenz, 200 Mischungen: TAU 0,5/EPS 0,1
+    +1,1 ± 5,0; schärfer (TAU 0,25/EPS 0,03, 16 Ereignisse) −11,8 ± 4,9. Das Modell „spielt wie der
+    Kartenzähler“ ist für die anderen Spieler offenbar nicht genau genug.
+  - *Initiativmodell* (Pfander 2013, Kap. 3.5): P(Kombination gewinnt den Stich) und P(wird spielbar)
+    aus 40 000 Runden Selbstspiel, Kontext höchste unbekannte Karte und Stichnummer, als Ersatz bzw.
+    Ergänzung der Kostenformel im Kartenzähler. counter gegen counter, 1000 Mischungen: P(Stich)
+    statt Formel −2,1 ± 2,0; Initiative PInit − PAbwurf −5,5 ± 2,2; Mittel aus beidem −0,5 ± 2,0.
+    Die bisherige Formel zählt die tatsächlich noch stechenden Karten und ist damit genauer als der
+    grobe Kontext.
+  - *Faustregeln* aus Strategietexten (Aaron Fuegi, scv.bu.edu; tichuonline.com), counter gegen
+    counter, 1000 Mischungen: Großes Tichu immer mit Drache und Phönix +0,5 ± 2,1; Hund beim ersten
+    Ausspiel +0,9 ± 2,0; schwache Hand schupft die beste Karte zum Partner −2,5 ± 2,1; höchsten
+    fehlenden Wert wünschen −1,1 ± 2,0.
+- `node arena/tune.js --b counter "LEAD=0.8" "WEAK=1.2"` – mehrere Einstellungen der Stellschrauben
+  (`P` in `bots/counter.js`) parallel testen.
+- `node arena/trace.js --seed 7` – eine Runde Zug für Zug mit allen Händen anzeigen.
+- `node arena/fit-tichu.js` – Tichu-Modelle aus Selbstspiel neu lernen (Gewichte in `bots/counter.js` eintragen).
 
 ## Quellen
 

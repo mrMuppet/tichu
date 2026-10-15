@@ -167,24 +167,100 @@
     return cards.some(c => !c.special && c.rank === rank);
   }
 
+  // Alle k-elementigen Teilmengen einer Indexliste als Bitmasken
+  function subsetMasks(list, k) {
+    const out = [];
+    const rec = (start, left, mask) => {
+      if (!left) { out.push(mask); return; }
+      for (let i = start; i <= list.length - left; i++) rec(i + 1, left - 1, mask | (1 << list[i]));
+    };
+    rec(0, k, 0);
+    return out;
+  }
+
+  /**
+   * Bitmasken aller Kartenmengen, die eine gültige Kombination sein könnten
+   * (Obermenge – geprüft wird danach mit analyze). Statt alle 2^n Teilmengen
+   * zu probieren, werden nur passende Formen erzeugt.
+   */
+  function candidateMasks(hand) {
+    const groups = [];
+    for (let r = 0; r <= 15; r++) groups.push([]);
+    let ph = -1;
+    hand.forEach((c, i) => {
+      if (c.special === 'phoenix') ph = i;
+      else if (c.special === 'mahjong') groups[1].push(i);
+      else if (!c.special) groups[c.rank].push(i);
+    });
+    const P = ph >= 0 ? 1 << ph : 0;
+    const set = new Set();
+    hand.forEach((c, i) => set.add(1 << i));
+    // Paare, Drillinge, Vierlinge (mit oder ohne Phönix)
+    const pairs = [], triples = [];
+    for (let r = 2; r <= 14; r++) {
+      const g = groups[r];
+      for (let k = 2; k <= Math.min(4, g.length); k++) {
+        for (const m of subsetMasks(g, k)) {
+          set.add(m);
+          if (k === 2) pairs.push({ r, m });
+          if (k === 3) triples.push({ r, m });
+        }
+      }
+      if (P) {
+        for (const m of subsetMasks(g, 1)) { set.add(m | P); pairs.push({ r, m: m | P, ph: true }); }
+        for (const m of subsetMasks(g, 2)) { set.add(m | P); triples.push({ r, m: m | P, ph: true }); }
+      }
+    }
+    // Full House
+    for (const t of triples) {
+      for (const p of pairs) {
+        if (p.r === t.r || (p.ph && t.ph)) continue;
+        set.add(t.m | p.m);
+      }
+    }
+    // Straßen (mit Mah Jong als 1, Phönix füllt höchstens eine Stelle)
+    const straightRec = (r, hi, mask, usedP) => {
+      if (r > hi) { set.add(mask); return; }
+      for (const i of groups[r]) straightRec(r + 1, hi, mask | (1 << i), usedP);
+      if (P && !usedP) straightRec(r + 1, hi, mask | P, true);
+    };
+    for (let lo = 1; lo <= 10; lo++) {
+      for (let hi = lo + 4; hi <= 14; hi++) straightRec(lo, hi, 0, false);
+    }
+    // Paarfolgen
+    const pairRec = (r, hi, mask, usedP) => {
+      if (r > hi) { set.add(mask); return; }
+      for (const m of subsetMasks(groups[r], 2)) pairRec(r + 1, hi, mask | m, usedP);
+      if (P && !usedP) for (const m of subsetMasks(groups[r], 1)) pairRec(r + 1, hi, mask | m | P, true);
+    };
+    for (let lo = 2; lo <= 13; lo++) {
+      for (let hi = lo + 1; hi <= 14; hi++) pairRec(lo, hi, 0, false);
+    }
+    return Array.from(set).sort((a, b) => a - b);
+  }
+
   /**
    * Alle spielbaren Kombinationen aus der Hand (auf top), optional nur solche,
    * die eine echte Karte des Rangs mustRank enthalten.
+   * Jeder Eintrag hat zusätzlich mask (Bitmaske der Indizes in hand).
    */
   function legalPlays(hand, top, mustRank) {
     const n = hand.length;
     const out = [];
-    const wishIdx = mustRank ? hand.map((c, i) => (!c.special && c.rank === mustRank ? i : -1)).filter(i => i >= 0) : null;
-    if (wishIdx && wishIdx.length === 0) return out;
-    for (let mask = 1; mask < (1 << n); mask++) {
-      if (wishIdx && !wishIdx.some(i => mask & (1 << i))) continue;
+    let wishMask = 0;
+    if (mustRank) {
+      hand.forEach((c, i) => { if (!c.special && c.rank === mustRank) wishMask |= 1 << i; });
+      if (!wishMask) return out;
+    }
+    for (const mask of candidateMasks(hand)) {
+      if (mustRank && !(mask & wishMask)) continue;
       let size = 0;
       for (let m = mask; m; m &= m - 1) size++;
       if (top && size !== top.len && size < 4) continue;
       const cards = [];
       for (let i = 0; i < n; i++) if (mask & (1 << i)) cards.push(hand[i]);
       const combo = analyze(cards, top);
-      if (combo && beats(combo, top)) out.push({ cards, combo });
+      if (combo && beats(combo, top)) out.push({ cards, combo, mask });
     }
     return out;
   }
