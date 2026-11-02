@@ -10,6 +10,7 @@ const bot = require('./bot.js');
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
 const BOT_DELAY_MS = 900;
+const RECEIVED_MS = 5000; // so lange zeigt der Client die geschupften Karten – Bots warten solange
 const BOT_NAMES = ['Bot Wu', 'Bot Li', 'Bot Chen', 'Bot Mei'];
 const TURN_MS = 30000;      // Zeitlimit pro Spielzug
 const VOTE_MS = 60000;      // Abstimmung über Abbruch/Neustart
@@ -354,9 +355,17 @@ class Room {
           if (a.type === 'play' && g.turn === s) g.pass(s);
         }
         this.broadcast();
-      }, a_delay(action));
+      }, this.botDelay(action));
       return;
     }
+  }
+
+  // Nach dem Schupfen warten Bots, bis die Menschen ihre geschupften Karten gesehen haben
+  botDelay(action) {
+    const g = this.game;
+    const humans = [0, 1, 2, 3].some(s => this.seats[s] && !this.isBot(s));
+    const wait = g.phase === 'play' && humans && g.exchangedAt ? g.exchangedAt + RECEIVED_MS - Date.now() : 0;
+    return Math.max(a_delay(action), wait);
   }
 
   // Zeitlimit: wer muss gerade handeln? Ändert sich der Schlüssel, startet die Uhr neu.

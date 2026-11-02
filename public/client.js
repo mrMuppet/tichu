@@ -426,7 +426,7 @@
     el.classList.remove('hidden');
     requestAnimationFrame(() => requestAnimationFrame(() => { const b = el.querySelector('.rec-bar div'); if (b) b.style.width = '0%'; }));
     clearTimeout(receivedTimer);
-    receivedTimer = setTimeout(() => el.classList.add('hidden'), 5000);
+    receivedTimer = setTimeout(() => el.classList.add('hidden'), 5000); // = RECEIVED_MS im Server
   }
 
   // Karten, die in mindestens einem gültigen Zug vorkommen (null = alle spielbar)

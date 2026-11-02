@@ -136,6 +136,7 @@ class Game {
       }
     }
     this.phase = 'play';
+    this.exchangedAt = Date.now(); // Menschen sehen jetzt kurz ihre geschupften Karten
     this.turn = this.hands.findIndex(h => h.some(c => c.special === 'mahjong'));
     this.log(`Geschupft. ${this.name(this.turn)} hat den Mah Jong und beginnt.`);
   }
