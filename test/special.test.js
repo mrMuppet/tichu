@@ -175,6 +175,21 @@ test('Autoskip: mit passender Bombe wird nicht übersprungen', () => {
   assert.strictEqual(g.turn, 1, 'P1 hat nur 4 Karten, aber eine Bombe');
 });
 
+test('Autoskip: unter 4 Karten bei mehr als 3 ausgespielten Karten', () => {
+  const g = setup('j3 s3 j4 s4 t9', 'j8 s8 p8', 'j10 s10 p10 t5 j5', 't12');
+  ok(g.play(0, ids('j3 s3 j4 s4')));         // Treppe (4 Karten)
+  assert.strictEqual(g.turn, 2, 'P1 (3 Karten) übersprungen, P2 ist dran');
+  assert.ok(g.trick.passed[1]);
+});
+
+test('Protokoll: Einträge tragen die Nummer ihres Stichs', () => {
+  const g = setup('j3 s9', 'j8 s2', 'j10 t2', 't12 j2');
+  ok(g.play(0, ids('j3')));
+  ok(g.pass(1));
+  const no = g.trick.no;
+  assert.deepStrictEqual(g.logs.slice(-2).map(l => l.trick), [no, no]);
+});
+
 test('Autoskip: alle übersprungen -> Stich wird abgeschlossen', () => {
   const g = setup('j3 s3 p3 j6 s6 t9', 's2', 'j4', 't12');
   ok(g.play(0, ids('j3 s3 p3 j6 s6')));

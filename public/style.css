@@ -119,6 +119,12 @@ input, select {
 #log .entry { margin-bottom: 4px; color: var(--muted); }
 #log .entry.chat { color: var(--text); }
 #log .entry.chat b { color: var(--gold); }
+/* Einträge eines Stichs gehören optisch zusammen */
+#log .trick-group {
+  margin: 0 0 6px; padding: 4px 8px 1px;
+  background: rgba(255, 255, 255, .05); border-left: 3px solid rgba(242, 193, 78, .55); border-radius: 0 6px 6px 0;
+}
+#log .trick-group .entry { margin-bottom: 3px; }
 #chat-form { display: flex; gap: 6px; padding: 8px; border-top: 1px solid rgba(255, 255, 255, .08); }
 #chat-form input { flex: 1; min-width: 0; }
 
@@ -180,6 +186,7 @@ input, select {
 /* ---------- Mitte ---------- */
 #center {
   position: absolute; left: 50%; top: 54%; transform: translate(-50%, -50%);
+  z-index: 6; /* gespielte Karten liegen immer über dem Zug-Pfeil */
   width: min(640px, calc(100% - 270px));
   display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
@@ -236,6 +243,7 @@ input, select {
   color: var(--card-fg);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 3px 7px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(255, 255, 255, .16);
   position: relative;
+  isolation: isolate; /* Index-Ecken bleiben innerhalb der Karte: die nächste Karte deckt sie ab */
   flex-shrink: 0;
   user-select: none;
   overflow: hidden;
@@ -370,10 +378,9 @@ body.cards-classic .back {
 }
 #turn-arrow span { display: inline-block; animation: nudge .9s ease-in-out infinite; }
 @keyframes nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(10px); } }
-#turn-arrow.at-top { top: 118px; left: 50%; transform: translateX(-50%) rotate(-90deg); }
-#turn-arrow.at-bottom { bottom: 0; left: 50%; transform: translateX(-50%) rotate(90deg); }
-#turn-arrow.at-left { left: 168px; top: 50%; transform: translateY(-50%) rotate(180deg); }
-#turn-arrow.at-right { right: 168px; top: 50%; transform: translateY(-50%); }
+/* Lage setzt client.js neben den Platz; hier nur die Richtung */
+#turn-arrow.dir-l { transform: rotate(180deg); }
+#turn-arrow.dir-u { transform: rotate(-90deg); }
 
 .seat.turn { animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse {
@@ -506,10 +513,6 @@ body.big-hand #trick { height: 270px; }
   .play.p-left { --dx: -22cqw; --dy: -40px; }
   .play.p-right { --dx: 22cqw; --dy: -40px; }
   .play.p-bottom { --dy: 58px; }
-  #turn-arrow.at-top, #turn-arrow.at-left, #turn-arrow.at-right { top: 126px; right: auto; transform: translateX(-50%) rotate(-90deg); }
-  #turn-arrow.at-top { left: 50%; }
-  #turn-arrow.at-left { left: 16.6%; }
-  #turn-arrow.at-right { left: 83.3%; }
   #game { grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "table" "me"; }
   #side { position: fixed; right: 0; top: 44px; bottom: 0; width: min(320px, 90vw); z-index: 40; background: #123526; }
   #side:not(.open) { display: none; }
@@ -548,7 +551,6 @@ body.big-hand #trick { height: 270px; }
   #settings-info { display: none; }
   .room-info { white-space: nowrap; }
   .act-main { padding: 8px 4px; font-size: 15px; }
-  body.big-hand #turn-arrow.at-bottom { left: 90%; }
   .act-slot button { padding: 8px 4px; font-size: 13px; }
   #received .rec-item { --cw: 54px; --ch: 78px; }
   #hand { --cw: 50px; --ch: 74px; --overlap: -28px; }

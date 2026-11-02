@@ -39,11 +39,13 @@ class Game {
     this.history = [];
     this.round = 0;
     this.logs = [];
+    this.trickCount = 0;         // fortlaufende Stich-Nummer (gruppiert das Protokoll)
     this.phase = 'lobby';
   }
 
-  log(text) {
-    this.logs.push({ text, ts: Date.now() });
+  // trick: Nummer des Stichs, zu dem der Eintrag gehört (null = keiner)
+  log(text, trick = this.trick ? this.trick.no : null) {
+    this.logs.push({ text, ts: Date.now(), trick });
     if (this.logs.length > 200) this.logs.shift();
   }
 
@@ -170,7 +172,7 @@ class Game {
     if (this.closing) { clearTimeout(this.closing.timer); this.closing = null; }
     this.hands[seat] = hand.filter(c => !ids.includes(c.id));
     this.hasPlayed[seat] = true;
-    if (!this.trick) this.trick = { plays: [], top: null, lastSeat: null, passes: 0, passed: [false, false, false, false] };
+    if (!this.trick) this.trick = { no: ++this.trickCount, plays: [], top: null, lastSeat: null, passes: 0, passed: [false, false, false, false] };
     this.trick.plays.push({ seat, cards: T.sortCards(cards), combo });
     this.trick.top = combo;
     this.trick.lastSeat = seat;
@@ -205,7 +207,7 @@ class Game {
       if (this.checkRoundEnd()) return;
       const partner = (seat + 2) % 4;
       this.turn = this.hands[partner].length ? partner : this.nextActive(partner);
-      this.log(`Der Hund gibt das Ausspiel an ${this.name(this.turn)}.`);
+      this.log(`Der Hund gibt das Ausspiel an ${this.name(this.turn)}.`, this.lastTrick.no);
       return;
     }
 
@@ -410,7 +412,7 @@ class Game {
       grandDecided: this.grandDecided, exchanged: this.exchange ? this.exchange.map(Boolean) : null,
       ready: this.ready, result: this.result, winner: this.winner,
       trick: this.trick ? { plays: this.trick.plays.map(p => ({ seat: p.seat, cards: p.cards, desc: T.describe(p.combo) })), lastSeat: this.trick.lastSeat, top: this.trick.top, passed: this.trick.passed } : null,
-      lastTrick: this.lastTrick ? { plays: this.lastTrick.plays.map(p => ({ seat: p.seat, cards: p.cards })) } : null,
+      lastTrick: this.lastTrick ? { plays: this.lastTrick.plays.map(p => ({ seat: p.seat, cards: p.cards, desc: T.describe(p.combo) })), lastSeat: this.lastTrick.lastSeat } : null,
       closing: this.closing ? { winner: this.closing.winner, ms: this.closing.timer ? Math.max(0, this.closing.until - Date.now()) : (this.closing.remaining || 0) } : null,
       dragonWinner: this.dragonPending ? this.dragonPending.winner : null,
       trickPoints: this.tricks ? this.tricks.map(t => T.sumPoints(t)) : [0, 0, 0, 0],

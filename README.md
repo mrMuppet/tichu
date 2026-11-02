@@ -38,11 +38,12 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
   Reihe); bei mehreren passenden Bomben wählt man eine aus.
 - **Partner liegt vorne:** Seine Karte ist blau markiert („🤝 Partner“); wer sie stechen würde, bekommt einen
   Warnhinweis.
-- **Unspielbare Karten** werden ausgegraut, wenn man dran ist (im ⚙-Menü abschaltbar).
+- **Unspielbare Karten** werden ausgegraut – auch schon während der Züge der anderen: was die liegende Kombination
+  nicht mehr stechen kann, ist grau (im ⚙-Menü abschaltbar).
 - **Geschupfte Karten** werden nach dem Schupfen 5 Sekunden lang angezeigt (von links / Partner / rechts).
 - **Automatisches Überspringen:** Wer weniger Karten hat, als die liegende Kombination braucht, wird
   automatisch übersprungen – außer man hat noch mindestens 4 Karten (dann wäre eine Bombe denkbar).
-- Beim Spielen des Mah Jong erscheint eine Auswahl für den **Wunsch**. Wer den gewünschten Wert
+- Beim Spielen des Mah Jong erscheint eine Auswahl für den **Wunsch**; ohne Wunsch wird noch einmal nachgefragt. Wer den gewünschten Wert
   regelkonform spielen kann (notfalls als Bombe), wird dazu gezwungen.
 - **Tisch-Einstellungen** (beim Erstellen und im Warteraum änderbar): Spiel bis 500 oder 1000 Punkte,
   Zeitlimit ohne oder 30 s pro Zug (Schupfen 60 s). Läuft die Zeit ab, wird automatisch gepasst bzw. die
@@ -50,7 +51,8 @@ Der Server muss für deine Freunde erreichbar sein. Drei einfache Möglichkeiten
   Mischung „zufällig“ oder „fest“ mit einer Zahl: dieselbe Zahl ergibt wieder dieselben Blätter (zum Nachspielen).
 - **Zug-Anzeige:** Ein goldener Pfeil zeigt auf den Spieler am Zug, dazu „AM ZUG“ mit Countdown.
   Gespielte Karten liegen in Richtung des Spielers, der sie gelegt hat. „🃏 liegt vorne“ markiert, wer die
-  oberste Karte gespielt hat, „✋ gepasst“ wer im Stich schon gepasst hat.
+  oberste Karte gespielt hat, „✋ gepasst“ wer im Stich schon gepasst hat. Nach der letzten Karte einer Runde bleibt
+  der letzte Stich kurz liegen, bevor die Abrechnung erscheint. Im Protokoll sind die Einträge eines Stichs eingerahmt.
 - **Schupfen:** Reihenfolge frei wählbar – erst Spieler-Feld, dann Karte antippen oder umgekehrt.
   Antippen einer Karte im Feld legt sie zurück.
 - **Ansicht (⚙ oben rechts):** Sortierung nach Wert oder Farbe, jeweils auf- oder absteigend; Handkarten „Normal“ oder „Groß“.

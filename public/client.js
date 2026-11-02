@@ -28,6 +28,8 @@
   let wasMyTurn = false;
   let modalKey = null;
   let showHistory = false;
+  let resultAt = 0;          // Rundenende: Ergebnis erst ab hier zeigen (vorher letzter Stich)
+  const RESULT_DELAY = 3500;
 
   // ---------- Verbindung ----------
 
@@ -55,6 +57,11 @@
         S = msg.state;
         playSounds(prev, S.game);
         if (prev && prev.phase === 'exchange' && S.game && S.game.phase === 'play' && S.game.received) showReceived(S.game.received);
+        const ended = x => x && (x.phase === 'roundEnd' || x.phase === 'gameOver');
+        if (prev && ended(S.game) && !ended(prev) && S.game.lastTrick) {
+          resultAt = Date.now() + RESULT_DELAY;
+          setTimeout(() => { if (S) render(); }, RESULT_DELAY + 20);
+        }
         const newEnd = S.timer ? Date.now() + S.timer.ms : null;
         if (!newEnd || !timerEnd || Math.abs(newEnd - timerEnd) > 1500) warned = false;
         timerEnd = newEnd;
@@ -179,6 +186,7 @@
     renderHand();
     renderLog();
     renderModal();
+    placeArrow(); // erst wenn Plätze und Hand ihre endgültige Lage haben
 
     const myTurn = g && g.phase === 'play' && g.turn === me() && me() !== null;
     if (myTurn && !wasMyTurn) Sfx.play('turn');
@@ -289,9 +297,28 @@
         (canReplace ? `<button class="small sub-btn" data-act="replaceOffline" data-seat="${seat}">🤖 Bot einsetzen</button>` : '') +
         `<div class="meta">${meta.join(' · ')}</div>`;
     }
-    // Pfeil zum Spieler, der am Zug ist
+    arrowSeat = g && acting !== null && acting !== undefined ? acting : null;
+  }
+
+  // Pfeil zum Spieler, der am Zug ist: direkt neben dessen Platz, nicht in der Ablage
+  let arrowSeat = null;
+  function placeArrow() {
     const arrow = $('#turn-arrow');
-    arrow.className = g && acting !== null && acting !== undefined ? 'at-' + posOf(acting) : 'hidden';
+    if (arrowSeat === null || !S) { arrow.className = 'hidden'; return; }
+    arrow.className = '';
+    const pos = posOf(arrowSeat);
+    const tb = $('#table').getBoundingClientRect();
+    const r = $('#seat-' + pos).getBoundingClientRect();
+    const w = arrow.offsetWidth, h = arrow.offsetHeight, gap = 4;
+    const stacked = window.innerWidth <= 900; // Handy: Plätze oben nebeneinander
+    let x, y, dir;
+    if (pos === 'left' && !stacked) { x = r.right + gap; y = r.top + (r.height - h) / 2; dir = 'l'; }
+    else if (pos !== 'bottom' && stacked) { x = r.left + (r.width - w) / 2; y = r.bottom + gap; dir = 'u'; }
+    else if (pos === 'bottom' && r.left - w - gap < tb.left) { x = r.right + gap; y = r.top + (r.height - h) / 2; dir = 'l'; }
+    else { x = r.left - w - gap; y = r.top + (r.height - h) / 2; dir = 'r'; }
+    arrow.className = 'dir-' + dir;
+    arrow.style.left = Math.round(x - tb.left) + 'px';
+    arrow.style.top = Math.round(y - tb.top) + 'px';
   }
 
   function renderCenter() {
@@ -318,7 +345,7 @@
       }
     } else if (g.phase === 'dragon') {
       parts.push(`${esc(nameOf(g.dragonWinner))} verschenkt den Drachen-Stich…`);
-    } else if (g.phase === 'roundEnd') parts.push('Runde beendet.');
+    } else if (g.phase === 'roundEnd') parts.push(Date.now() < resultAt ? 'Runde beendet – der letzte Stich:' : 'Runde beendet.');
     else if (g.phase === 'gameOver') parts.push('Spiel beendet.');
     if (S.timer && (g.phase === 'grand' || g.phase === 'exchange')) parts.push('<span class="countdown-inline"><span data-cd></span></span>');
     status.innerHTML = parts.join(' ');
@@ -326,14 +353,17 @@
     if (bar) requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = '0%'; }));
 
     let html = '';
-    if (g.trick) {
-      const plays = g.trick.plays.slice(-3);
+    const ended = g.phase === 'roundEnd' || g.phase === 'gameOver';
+    if (g.trick || (ended && g.lastTrick)) {
+      // nach der letzten Karte bleibt der letzte Stich liegen
+      const plays = (g.trick || g.lastTrick).plays.slice(-3);
       html = plays.map((p, i) => {
         const old = i < plays.length - 1;
-        const partner = me() !== null && p.seat === (me() + 2) % 4;
+        const partner = !!g.trick && me() !== null && p.seat === (me() + 2) % 4;
+        const desc = g.trick ? `${partner ? '🤝 Partner: ' : ''}${esc(p.desc)}` : `letzter Stich · ${esc(p.desc)}`;
         return `<div class="play p-${posOf(p.seat)} ${old ? 'old' : 'current'}${partner ? ' partner' : ''}" style="z-index:${i + 1}">` +
           `<div class="cards">${p.cards.map(c => cardHTML(c)).join('')}</div>` +
-          (old ? '' : `<div class="desc">${partner ? '🤝 Partner: ' : ''}${esc(p.desc)}</div>`) + `</div>`;
+          (old ? '' : `<div class="desc">${desc}</div>`) + `</div>`;
       }).join('');
     } else if (g.lastTrick && g.phase === 'play') {
       const p = g.lastTrick.plays[g.lastTrick.plays.length - 1];
@@ -401,15 +431,17 @@
 
   // Karten, die in mindestens einem gültigen Zug vorkommen (null = alle spielbar)
   let playCache = { key: null, ids: null };
+  // Auch während der Züge der anderen: was die liegende Kombination nicht mehr stechen kann, ist grau.
   function playableIds(g) {
-    const myTurn = g.phase === 'play' && g.turn === me() && !g.closing;
-    if (!myTurn) return null;
+    if (g.phase !== 'play') return null;
+    const myTurn = g.turn === me() && !g.closing;
+    const wish = myTurn && g.mustFulfill ? g.wish : null;
     const top = g.trick ? g.trick.top : null;
-    if (!top && !g.mustFulfill) return null;
-    const key = g.hand.map(c => c.id).join() + '|' + JSON.stringify(top) + '|' + (g.mustFulfill ? g.wish : '');
+    if (!top && !wish) return null;
+    const key = g.hand.map(c => c.id).join() + '|' + JSON.stringify(top) + '|' + (wish || '');
     if (playCache.key !== key) {
       const ids = new Set();
-      for (const p of T.legalPlays(g.hand, top, g.mustFulfill ? g.wish : null)) p.cards.forEach(c => ids.add(c.id));
+      for (const p of T.legalPlays(g.hand, top, wish)) p.cards.forEach(c => ids.add(c.id));
       playCache = { key, ids };
     }
     return playCache.ids;
@@ -596,12 +628,28 @@
 
   function renderLog() {
     const g = S.game;
-    const entries = (g ? g.logs.map(l => ({ ts: l.ts, html: esc(l.text), chat: false })) : [])
-      .concat(S.chat.map(c => ({ ts: c.ts, html: `<b>${esc(c.name)}:</b> ${esc(c.text)}`, chat: true })))
+    const entries = (g ? g.logs.map(l => ({ ts: l.ts, html: esc(l.text), chat: false, trick: l.trick })) : [])
+      .concat(S.chat.map(c => ({ ts: c.ts, html: `<b>${esc(c.name)}:</b> ${esc(c.text)}`, chat: true, trick: null })))
       .sort((a, b) => a.ts - b.ts).slice(-120);
+    // Chat mitten im Stich gehört zur Gruppe, wenn danach noch ein Eintrag desselben Stichs kommt
+    for (let i = entries.length - 1, next = null; i >= 0; i--) {
+      if (entries[i].chat) entries[i].trick = next;
+      else next = entries[i].trick;
+    }
+    let html = '', open = null;
+    for (const e of entries) {
+      const t = e.trick === undefined ? null : e.trick;
+      if (t !== open) {
+        if (open !== null) html += '</div>';
+        if (t !== null) html += '<div class="trick-group">';
+        open = t;
+      }
+      html += `<div class="entry ${e.chat ? 'chat' : ''}">${e.html}</div>`;
+    }
+    if (open !== null) html += '</div>';
     const log = $('#log');
     const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-    log.innerHTML = entries.map(e => `<div class="entry ${e.chat ? 'chat' : ''}">${e.html}</div>`).join('');
+    log.innerHTML = html;
     if (atBottom) log.scrollTop = log.scrollHeight;
   }
 
@@ -638,7 +686,7 @@
       html = `<h2>🐉 Drachen-Stich verschenken</h2><p style="text-align:center">An welchen Gegner geht der Stich?</p>` +
         `<div class="btn-row"><button class="primary" data-act="dragon" data-seat="${b}">${esc(nameOf(b))} (links, ${g.counts[b]} Karten)</button>` +
         `<button class="primary" data-act="dragon" data-seat="${a}">${esc(nameOf(a))} (rechts, ${g.counts[a]} Karten)</button></div>`;
-    } else if (g && (g.phase === 'roundEnd' || g.phase === 'gameOver') && g.result) {
+    } else if (g && (g.phase === 'roundEnd' || g.phase === 'gameOver') && g.result && Date.now() >= resultAt) {
       const r = g.result;
       const over = g.phase === 'gameOver';
       key = 'result' + g.round + (over ? 'o' : '') + (g.ready[me()] ? 'r' : '');
@@ -702,6 +750,7 @@
       case 'play': {
         const ids = [...selected];
         const hasMJ = selectedCards().some(c => c.special === 'mahjong');
+        if (hasMJ && !wishValue && !confirm('Mah Jong ohne Wunsch spielen?')) break;
         send({ t: 'play', ids, wish: hasMJ && wishValue ? Number(wishValue) : null });
         selected.clear();
         wishValue = '';
@@ -856,7 +905,7 @@
     ev.preventDefault();
     $('#hand').scrollLeft += ev.deltaY;
   }, { passive: false });
-  window.addEventListener('resize', () => carousel());
+  window.addEventListener('resize', () => { carousel(); placeArrow(); });
 
   // Countdown für das Zeitlimit
   setInterval(() => {
